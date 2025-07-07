@@ -1,0 +1,17 @@
+services:
+  db:
+    image: postgres:latest
+    restart: always
+    environment:
+      POSTGRES_USER: noturi_user
+      POSTGRES_PASSWORD: noturi_pass
+      POSTGRES_DB: noturi_db
+      POSTGRES_HOST_AUTH_METHOD: trust
+    volumes:
+      - db_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - '5432:5432'
+
+volumes:
+  db_data:
