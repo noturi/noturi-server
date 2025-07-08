@@ -1,5 +1,4 @@
 // prisma/schema.prisma
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -11,6 +10,7 @@ datasource db {
 
 enum AuthProvider {
   GOOGLE
+  GITHUB
   APPLE
 }
 
@@ -18,6 +18,7 @@ model User {
   id            String         @id @default(uuid())
   nickname      String         @unique
   email         String         @unique
+  name          String?        // 실제 이름 (OAuth에서 가져옴)
   provider      AuthProvider
   providerId    String         @unique
   avatarUrl     String?
@@ -26,42 +27,62 @@ model User {
   updatedAt     DateTime       @updatedAt
 
   categories    Category[]
-  notes         Note[]
+  memos         Memo[]
   refreshTokens RefreshToken[]
 
   @@index([provider, providerId])
+  @@map("users")
 }
 
 model Category {
-  id        String    @id @default(uuid())
+  id        String   @id @default(uuid())
   name      String
-  user      User      @relation(fields: [userId], references: [id])
+  color     String?  // 향후 UI 색상용 (#FF5733 형태)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId    String
-  notes     Note[]
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  memos     Memo[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // 같은 유저 내에서 카테고리명 중복 방지
+  @@unique([userId, name])
+  @@index([userId])
+  @@map("categories")
 }
 
-model Note {
-  id         String    @id @default(uuid())
-  text       String
-  rating     Int       
-  user       User      @relation(fields: [userId], references: [id])
-  userId     String
-  category   Category  @relation(fields: [categoryId], references: [id])
-  categoryId String
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
+model Memo {
+  id             String    @id @default(uuid())
+  title          String?   // 제목 (선택사항)
+  content        String?   // 본문 내용
+  rating         Float     // 1.0 ~ 5.0 (0.5 단위)
+  experienceDate DateTime? // 실제 경험한 날짜 (향후 기능)
+  
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId         String
+  category       Category  @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  categoryId     String
+  
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([userId])
+  @@index([categoryId])
+  @@index([rating])
+  @@index([createdAt])
+  @@index([userId, rating]) // 통계 쿼리 최적화용
+  @@index([userId, categoryId]) // 카테고리별 조회 최적화용
+  @@map("memos")
 }
 
 model RefreshToken {
-  id         String    @id @default(uuid())
-  token      String    @unique
-  user       User      @relation(fields: [userId], references: [id])
-  userId     String
-  createdAt  DateTime  @default(now())
-  expiresAt  DateTime
-  revokedAt  DateTime?
+  id        String    @id @default(uuid())
+  token     String    @unique
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  createdAt DateTime  @default(now())
+  expiresAt DateTime
+  revokedAt DateTime?
 
   @@index([userId])
+  @@map("refresh_tokens")
 }
