@@ -1,61 +1,100 @@
 // src/categories/categories.service.ts
-
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { PrismaService } from '../../prisma/prisma.service';
-import { CreateCategoryDto } from './dto/create-category.dto';
-import { UpdateCategoryDto } from './dto/update-category.dto';
-
-// 시드된 고정 사용자 ID (UUID)
-const SEED_USER_ID = '110caecb-8727-414d-aa0c-667fa639518c';
+import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { PrismaService } from 'prisma/prisma.service';
+import { CreateCategoryDto, UpdateCategoryDto } from './dto';
 
 @Injectable()
 export class CategoriesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) {}
 
-  /** 모든 카테고리 조회 (시드한 고정 사용자용) */
-  async findAll(): Promise<{ id: string; name: string }[]> {
-    return this.prisma.category.findMany({
-      where: { userId: SEED_USER_ID },
-      select: { id: true, name: true },
+  // 방법 1: _count 없이 별도로 계산
+  async findAll(userId: string) {
+    const categories = await this.prisma.category.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'asc' },
     });
+
+    // 각 카테고리별 메모 개수 추가
+    const categoriesWithCount = await Promise.all(
+      categories.map(async (category) => {
+        const memoCount = await this.prisma.memo.count({
+          where: { categoryId: category.id },
+        });
+        return {
+          ...category,
+          _count: { memos: memoCount },
+        };
+      }),
+    );
+
+    return categoriesWithCount;
   }
 
-  /** 단일 카테고리 조회 */
-  async findOne(id: string): Promise<{ id: string; name: string }> {
-    const cat = await this.prisma.category.findFirst({
-      where: { id, userId: SEED_USER_ID },
-      select: { id: true, name: true },
+  async findOne(userId: string, id: string) {
+    const category = await this.prisma.category.findFirst({
+      where: { id, userId },
     });
-    if (!cat) {
-      throw new NotFoundException(`Category with id ${id} not found`);
+
+    if (!category) {
+      throw new NotFoundException('카테고리를 찾을 수 없습니다');
     }
-    return cat;
-  }
 
-  /** 카테고리 생성 */
-  async create(dto: CreateCategoryDto): Promise<{ id: string; name: string }> {
-    return this.prisma.category.create({
-      data: { name: dto.name, userId: SEED_USER_ID },
-      select: { id: true, name: true },
+    const memoCount = await this.prisma.memo.count({
+      where: { categoryId: id },
     });
+
+    return {
+      ...category,
+      _count: { memos: memoCount },
+    };
   }
 
-  /** 카테고리 수정 */
-  async update(id: string, dto: UpdateCategoryDto): Promise<{ id: string; name: string }> {
-    await this.findOne(id);
-    return this.prisma.category.update({
-      where: { id },
-      data: { name: dto.name },
-      select: { id: true, name: true },
+  async create(userId: string, createCategoryDto: CreateCategoryDto) {
+    try {
+      return await this.prisma.category.create({
+        data: {
+          ...createCategoryDto,
+          userId,
+        },
+      });
+    } catch (error) {
+      this.handlePrismaError(error);
+    }
+  }
+
+  async update(userId: string, id: string, updateCategoryDto: UpdateCategoryDto) {
+    await this.findOne(userId, id);
+
+    try {
+      return await this.prisma.category.update({
+        where: { id },
+        data: updateCategoryDto,
+      });
+    } catch (error) {
+      this.handlePrismaError(error);
+    }
+  }
+
+  async remove(userId: string, id: string) {
+    await this.findOne(userId, id);
+
+    const memoCount = await this.prisma.memo.count({
+      where: { categoryId: id },
     });
-  }
 
-  /** 카테고리 삭제 */
-  async remove(id: string): Promise<{ id: string; name: string }> {
-    await this.findOne(id);
+    if (memoCount > 0) {
+      throw new ConflictException('메모가 있는 카테고리는 삭제할 수 없습니다');
+    }
+
     return this.prisma.category.delete({
       where: { id },
-      select: { id: true, name: true },
     });
+  }
+
+  private handlePrismaError(error: any): never {
+    if (error.code === 'P2002') {
+      throw new ConflictException('이미 존재하는 카테고리 이름입니다');
+    }
+    throw error;
   }
 }
