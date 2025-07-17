@@ -48,6 +48,26 @@ export class AuthService {
     });
   }
 
+  async verifyGoogleToken(accessToken: string): Promise<GoogleUser> {
+    try {
+      const response = await fetch(`https://www.googleapis.com/oauth2/v1/userinfo?access_token=${accessToken}`);
+      const googleUserData = await response.json();
+
+      if (!response.ok) {
+        throw new Error('Invalid Google token');
+      }
+
+      return {
+        googleId: googleUserData.id,
+        email: googleUserData.email,
+        name: googleUserData.name,
+        picture: googleUserData.picture,
+      };
+    } catch (error) {
+      throw new UnauthorizedException('Google token verification failed');
+    }
+  }
+
   // 기존 Google 사용자 정보 업데이트
   private async updateGoogleUser(userId: string, googleUser: GoogleUser) {
     return this.prisma.user.update({

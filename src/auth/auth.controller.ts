@@ -1,8 +1,8 @@
 // src/auth/auth.controller.ts
-import { Body, Controller, Get, Post, Req, Res, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Post, Req, Res, UnauthorizedException, UseGuards } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { AuthService } from './auth.service';
-import { RefreshTokenDto } from './dto/auth.dto';
+import { GoogleUser, RefreshTokenDto } from './dto/auth.dto';
 import { GoogleAuthGuard } from './guards/google.auth.guard';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 
@@ -35,6 +35,41 @@ export class AuthController {
     } catch (error) {
       // 에러 발생시 에러 페이지로 리다이렉트
       return res.redirect('http://localhost:19006/auth/error');
+    }
+  }
+
+  @Post('google/expo')
+  async googleExpoAuth(@Body() body: { accessToken: string }) {
+    try {
+      // Google API로 토큰 검증
+      const googleUser = await this.authService.verifyGoogleToken(body.accessToken);
+
+      // 사용자 검증 및 JWT 생성
+      const user = await this.authService.validateGoogleUser(googleUser);
+      const tokens = await this.authService.generateTokens(user);
+
+      return tokens;
+    } catch (error) {
+      throw new UnauthorizedException('Invalid Google token');
+    }
+  }
+
+  @Post('google/native')
+  async googleNativeAuth(@Body() body: { googleId: string; email: string; name: string; photo: string }) {
+    try {
+      const googleUser: GoogleUser = {
+        googleId: body.googleId,
+        email: body.email,
+        name: body.name,
+        picture: body.photo,
+      };
+
+      const user = await this.authService.validateGoogleUser(googleUser);
+      const tokens = await this.authService.generateTokens(user);
+
+      return tokens;
+    } catch (error) {
+      throw new UnauthorizedException('Invalid Google user data');
     }
   }
 
