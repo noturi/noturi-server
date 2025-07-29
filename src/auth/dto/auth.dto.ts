@@ -1,3 +1,5 @@
+import { IsNotEmpty, IsString } from 'class-validator';
+
 export interface GoogleUser {
   googleId: string;
   email: string;
@@ -25,5 +27,12 @@ export interface JwtPayload {
 }
 
 export class RefreshTokenDto {
+  @IsString()
+  @IsNotEmpty()
+  refreshToken: string;
+}
+
+export class LogoutDto {
+  @IsString()
   refreshToken: string;
 }

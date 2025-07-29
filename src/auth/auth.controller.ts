@@ -1,8 +1,19 @@
 // src/auth/auth.controller.ts
-import { Body, Controller, Get, Post, Req, Res, UnauthorizedException, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Post,
+  Req,
+  Res,
+  UnauthorizedException,
+  UseGuards,
+  HttpCode,
+  HttpStatus,
+} from '@nestjs/common';
 import { Request, Response } from 'express';
 import { AuthService } from './auth.service';
-import { GoogleUser, RefreshTokenDto } from './dto/auth.dto';
+import { GoogleUser, RefreshTokenDto, LogoutDto } from './dto/auth.dto';
 import { GoogleAuthGuard } from './guards/google.auth.guard';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 
@@ -91,18 +102,19 @@ export class AuthController {
   // 로그아웃
   @Post('logout')
   @UseGuards(JwtAuthGuard)
-  async logout(@Req() req: Request, @Body() refreshTokenDto: RefreshTokenDto) {
+  @HttpCode(HttpStatus.OK)
+  async logout(@Req() req: Request, @Body() logoutDto: LogoutDto) {
     const userId = (req.user as any).id;
 
-    // 리프레시 토큰 무효화
-    await this.authService.revokeRefreshToken(refreshTokenDto.refreshToken, userId);
+    if (logoutDto.refreshToken) {
+      await this.authService.revokeRefreshToken(logoutDto.refreshToken, userId);
+    }
 
     return {
       message: '로그아웃되었습니다',
     };
   }
 
-  // 개발용: 테스트 로그인 (실제 배포시 제거)
   @Post('test-login')
   async testLogin() {
     // 임시 사용자로 토큰 생성 (개발용)

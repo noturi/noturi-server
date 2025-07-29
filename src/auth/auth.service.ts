@@ -166,16 +166,19 @@ export class AuthService {
   }
 
   // 리프레시 토큰 무효화
-  async revokeRefreshToken(refreshToken: string, userId: string) {
-    await this.prisma.refreshToken.updateMany({
-      where: {
-        token: refreshToken,
-        userId,
-        revokedAt: null,
-      },
-      data: {
-        revokedAt: new Date(),
-      },
+  async revokeRefreshToken(refreshToken: string, userId: string): Promise<void> {
+    const token = await this.prisma.refreshToken.findFirst({
+      where: { token: refreshToken, userId },
+    });
+
+    if (!token || token.revokedAt) {
+      // 이미 무효화되었거나 존재하지 않는 토큰이면 아무것도 하지 않음
+      return;
+    }
+
+    await this.prisma.refreshToken.update({
+      where: { id: token.id },
+      data: { revokedAt: new Date() },
     });
   }
 
