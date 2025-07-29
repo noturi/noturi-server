@@ -7,6 +7,12 @@ export interface GoogleUser {
   picture: string;
 }
 
+interface UserCategory {
+  id: string;
+  name: string;
+  color: string | null;
+}
+
 export interface LoginResponse {
   accessToken: string;
   refreshToken: string;
@@ -16,6 +22,7 @@ export interface LoginResponse {
     name: string;
     nickname: string;
     avatarUrl?: string;
+    categories: UserCategory[];
   };
 }
 

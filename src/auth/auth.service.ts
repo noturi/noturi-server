@@ -18,6 +18,9 @@ export class AuthService {
       where: {
         OR: [{ email: googleUser.email }, { providerId: googleUser.googleId, provider: 'GOOGLE' }],
       },
+      include: {
+        categories: true,
+      },
     });
 
     if (!user) {
@@ -33,18 +36,42 @@ export class AuthService {
 
   // 새 Google 사용자 생성
   private async createGoogleUser(googleUser: GoogleUser) {
-    // 고유한 닉네임 생성
     const nickname = await this.generateUniqueNickname(googleUser.name);
 
-    return this.prisma.user.create({
-      data: {
-        email: googleUser.email,
-        name: googleUser.name,
-        nickname,
-        provider: 'GOOGLE',
-        providerId: googleUser.googleId,
-        avatarUrl: googleUser.picture,
-      },
+    const defaultCategories = [
+      { name: '영화', color: '#FF6B6B' },
+      { name: '독서', color: '#4ECDC4' },
+      { name: '음악', color: '#45B7D1' },
+    ];
+
+    return this.prisma.$transaction(async (tx) => {
+      const newUser = await tx.user.create({
+        data: {
+          email: googleUser.email,
+          name: googleUser.name,
+          nickname,
+          provider: 'GOOGLE',
+          providerId: googleUser.googleId,
+          avatarUrl: googleUser.picture,
+        },
+      });
+
+      await tx.category.createMany({
+        data: defaultCategories.map((category) => ({
+          ...category,
+          userId: newUser.id,
+        })),
+      });
+
+      // 카테고리 생성 후, 최신 정보를 포함하여 다시 조회 후 반환
+      const userWithCategories = await tx.user.findUnique({
+        where: { id: newUser.id },
+        include: {
+          categories: true,
+        },
+      });
+
+      return userWithCategories;
     });
   }
 
@@ -70,13 +97,42 @@ export class AuthService {
 
   // 기존 Google 사용자 정보 업데이트
   private async updateGoogleUser(userId: string, googleUser: GoogleUser) {
-    return this.prisma.user.update({
+    const updatedUser = await this.prisma.user.update({
       where: { id: userId },
       data: {
         name: googleUser.name,
         avatarUrl: googleUser.picture,
       },
+      include: {
+        categories: true,
+      },
     });
+
+    // 카테고리가 없으면 기본 카테고리 생성
+    if (updatedUser.categories.length === 0) {
+      const defaultCategories = [
+        { name: '영화', color: '#FF6B6B' },
+        { name: '독서', color: '#4ECDC4' },
+        { name: '음악', color: '#45B7D1' },
+      ];
+
+      await this.prisma.category.createMany({
+        data: defaultCategories.map((category) => ({
+          ...category,
+          userId: updatedUser.id,
+        })),
+      });
+
+      // 카테고리 생성 후 최신 정보로 다시 조회
+      return this.prisma.user.findUnique({
+        where: { id: userId },
+        include: {
+          categories: true,
+        },
+      });
+    }
+
+    return updatedUser;
   }
 
   // 고유 닉네임 생성
@@ -127,6 +183,7 @@ export class AuthService {
         name: user.name,
         nickname: user.nickname,
         avatarUrl: user.avatarUrl,
+        categories: user.categories,
       },
     };
   }
