@@ -159,7 +159,7 @@ export class StatisticsService {
 
     // 별점 분포
     const ratingDistribution = ratingStats.map((stat) => ({
-      rating: stat.rating,
+      rating: Number(stat.rating),
       count: stat._count.id,
       percentage: totalMemos > 0 ? Number(((stat._count.id / totalMemos) * 100).toFixed(1)) : 0,
     }));
@@ -215,7 +215,7 @@ export class StatisticsService {
       id: memo.id,
       title: memo.title || '제목 없음',
       category: memo.category.name,
-      rating: memo.rating,
+      rating: Number(memo.rating),
       date: memo.createdAt.toISOString().split('T')[0],
     }));
   }
@@ -261,7 +261,7 @@ export class StatisticsService {
       id: memo.id,
       title: memo.title || '제목 없음',
       category: memo.category.name,
-      rating: memo.rating,
+      rating: Number(memo.rating),
       date: memo.createdAt.toISOString().split('T')[0],
     }));
   }

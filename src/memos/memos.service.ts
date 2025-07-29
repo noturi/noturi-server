@@ -1,5 +1,6 @@
 // src/memos/memos.service.ts
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from 'prisma/prisma.service';
 import { CreateMemoDto, QueryMemoDto, UpdateMemoDto } from './dto';
 
@@ -11,7 +12,7 @@ export class MemosService {
   async create(userId: string, createMemoDto: CreateMemoDto) {
     await this.validateCategoryOwnership(userId, createMemoDto.categoryId);
 
-    return this.prisma.memo.create({
+    const memo = await this.prisma.memo.create({
       data: {
         ...createMemoDto,
         userId,
@@ -26,6 +27,10 @@ export class MemosService {
         },
       },
     });
+    return {
+      ...memo,
+      rating: Number(memo.rating),
+    };
   }
 
   // 메모 목록 조회 (필터링 + 페이징)
@@ -43,7 +48,7 @@ export class MemosService {
     } = queryDto;
 
     // where 조건 구성
-    const where: any = { userId };
+    const where: Prisma.MemoWhereInput = { userId };
 
     if (categoryId) {
       where.categoryId = categoryId;
@@ -93,7 +98,7 @@ export class MemosService {
     ]);
 
     return {
-      data: memos,
+      data: memos.map((memo) => ({ ...memo, rating: Number(memo.rating) })),
       meta: {
         total,
         page,
@@ -122,19 +127,28 @@ export class MemosService {
       throw new NotFoundException('메모를 찾을 수 없습니다');
     }
 
-    return memo;
+    return {
+      ...memo,
+      rating: Number(memo.rating),
+    };
   }
 
   // 메모 수정
   async update(userId: string, id: string, updateMemoDto: UpdateMemoDto) {
-    await this.findOne(userId, id);
+    const memo = await this.prisma.memo.findFirst({
+      where: { id, userId },
+    });
+
+    if (!memo) {
+      throw new NotFoundException('메모를 찾을 수 없습니다.');
+    }
 
     // 카테고리 변경하는 경우 소유권 확인
     if (updateMemoDto.categoryId) {
       await this.validateCategoryOwnership(userId, updateMemoDto.categoryId);
     }
 
-    return this.prisma.memo.update({
+    const updatedMemo = await this.prisma.memo.update({
       where: { id },
       data: updateMemoDto,
       include: {
@@ -147,11 +161,22 @@ export class MemosService {
         },
       },
     });
+
+    return {
+      ...updatedMemo,
+      rating: Number(updatedMemo.rating),
+    };
   }
 
   // 메모 삭제
   async remove(userId: string, id: string) {
-    await this.findOne(userId, id);
+    const memo = await this.prisma.memo.findFirst({
+      where: { id, userId },
+    });
+
+    if (!memo) {
+      throw new NotFoundException('메모를 찾을 수 없습니다.');
+    }
 
     return this.prisma.memo.delete({
       where: { id },
@@ -160,7 +185,7 @@ export class MemosService {
 
   // 카테고리별 메모 통계
   async getStatsByCategory(userId: string) {
-    return this.prisma.memo.groupBy({
+    const stats = await this.prisma.memo.groupBy({
       by: ['categoryId'],
       where: { userId },
       _count: {
@@ -170,11 +195,17 @@ export class MemosService {
         rating: true,
       },
     });
+    return stats.map((stat) => ({
+      ...stat,
+      _avg: {
+        rating: stat._avg.rating ? Number(stat._avg.rating.toFixed(1)) : null,
+      },
+    }));
   }
 
   // 별점별 메모 통계
   async getStatsByRating(userId: string) {
-    return this.prisma.memo.groupBy({
+    const stats = await this.prisma.memo.groupBy({
       by: ['rating'],
       where: { userId },
       _count: {
@@ -184,11 +215,12 @@ export class MemosService {
         rating: 'asc',
       },
     });
+    return stats.map((stat) => ({ ...stat, rating: Number(stat.rating) }));
   }
 
   // 베스트 메모들 (4.5점 이상)
   async getBestMemos(userId: string, limit: number = 10) {
-    return this.prisma.memo.findMany({
+    const memos = await this.prisma.memo.findMany({
       where: {
         userId,
         rating: { gte: 4.5 },
@@ -205,11 +237,12 @@ export class MemosService {
       orderBy: [{ rating: 'desc' }, { createdAt: 'desc' }],
       take: limit,
     });
+    return memos.map((memo) => ({ ...memo, rating: Number(memo.rating) }));
   }
 
   // 최근 메모들
   async getRecentMemos(userId: string, limit: number = 10) {
-    return this.prisma.memo.findMany({
+    const memos = await this.prisma.memo.findMany({
       where: { userId },
       include: {
         category: {
@@ -223,6 +256,7 @@ export class MemosService {
       orderBy: { createdAt: 'desc' },
       take: limit,
     });
+    return memos.map((memo) => ({ ...memo, rating: Number(memo.rating) }));
   }
 
   // 카테고리 소유권 확인
