@@ -2,6 +2,7 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from 'prisma/prisma.service';
+import { DEFAULT_CATEGORIES } from '../common/constants';
 import { GoogleUser, JwtPayload, LoginResponse } from './dto/auth.dto';
 
 @Injectable()
@@ -38,12 +39,6 @@ export class AuthService {
   private async createGoogleUser(googleUser: GoogleUser) {
     const nickname = await this.generateUniqueNickname(googleUser.name);
 
-    const defaultCategories = [
-      { name: '영화', color: '#FF6B6B' },
-      { name: '독서', color: '#4ECDC4' },
-      { name: '음악', color: '#45B7D1' },
-    ];
-
     return this.prisma.$transaction(async (tx) => {
       const newUser = await tx.user.create({
         data: {
@@ -57,7 +52,7 @@ export class AuthService {
       });
 
       await tx.category.createMany({
-        data: defaultCategories.map((category) => ({
+        data: DEFAULT_CATEGORIES.map((category) => ({
           ...category,
           userId: newUser.id,
         })),
@@ -110,14 +105,8 @@ export class AuthService {
 
     // 카테고리가 없으면 기본 카테고리 생성
     if (updatedUser.categories.length === 0) {
-      const defaultCategories = [
-        { name: '영화', color: '#FF6B6B' },
-        { name: '독서', color: '#4ECDC4' },
-        { name: '음악', color: '#45B7D1' },
-      ];
-
       await this.prisma.category.createMany({
-        data: defaultCategories.map((category) => ({
+        data: DEFAULT_CATEGORIES.map((category) => ({
           ...category,
           userId: updatedUser.id,
         })),
