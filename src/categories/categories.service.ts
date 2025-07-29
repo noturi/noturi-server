@@ -7,8 +7,8 @@ import { CreateCategoryDto, UpdateCategoryDto } from './dto';
 export class CategoriesService {
   constructor(private prisma: PrismaService) {}
 
-  findAll(userId: string) {
-    return this.prisma.category.findMany({
+  async findAll(userId: string) {
+    const categories = await this.prisma.category.findMany({
       where: { userId },
       include: {
         _count: {
@@ -17,6 +17,11 @@ export class CategoriesService {
       },
       orderBy: { createdAt: 'asc' },
     });
+
+    return categories.map(({ _count, ...category }) => ({
+      ...category,
+      count: _count,
+    }));
   }
 
   async findOne(userId: string, id: string) {
@@ -33,7 +38,11 @@ export class CategoriesService {
       throw new NotFoundException('카테고리를 찾을 수 없습니다');
     }
 
-    return category;
+    const { _count, ...categoryData } = category;
+    return {
+      ...categoryData,
+      count: _count,
+    };
   }
 
   async create(userId: string, createCategoryDto: CreateCategoryDto) {

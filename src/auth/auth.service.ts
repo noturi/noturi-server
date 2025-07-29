@@ -1,6 +1,7 @@
 // src/auth/auth.service.ts
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { User } from '@prisma/client';
 import { PrismaService } from 'prisma/prisma.service';
 import { DEFAULT_CATEGORIES } from '../common/constants';
 import { GoogleUser, JwtPayload, LoginResponse } from './dto/auth.dto';
@@ -139,7 +140,7 @@ export class AuthService {
   }
 
   // JWT 토큰 생성
-  async generateTokens(user: any): Promise<LoginResponse> {
+  async generateTokens(user: User & { categories: any[] }): Promise<LoginResponse> {
     const payload: JwtPayload = {
       sub: user.id,
       email: user.email,
@@ -205,7 +206,7 @@ export class AuthService {
       });
 
       // 새 토큰 발급
-      return this.generateTokens(storedToken.user);
+      return this.generateTokens(storedToken.user as User & { categories: any[] });
     } catch (error) {
       throw new UnauthorizedException('유효하지 않은 리프레시 토큰입니다');
     }

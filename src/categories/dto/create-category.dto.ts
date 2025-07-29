@@ -1,12 +1,16 @@
-import { IsHexColor, IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
+import { ApiProperty } from '@nestjs/swagger';
+import { IsNotEmpty, IsOptional, IsString, Length } from 'class-validator';
 
 export class CreateCategoryDto {
+  @ApiProperty({ description: '카테고리 이름', example: '새로운 카테고리' })
   @IsString()
-  @MinLength(1, { message: '카테고리 이름은 최소 1글자 이상이어야 합니다' })
-  @MaxLength(50, { message: '카테고리 이름은 50글자를 초과할 수 없습니다' })
+  @IsNotEmpty()
+  @Length(1, 20)
   name: string;
 
+  @ApiProperty({ description: '카테고리 색상 (Hex 코드)', example: '#FFFFFF', required: false })
   @IsOptional()
-  @IsHexColor({ message: '올바른 색상 코드를 입력해주세요 (예: #FF5733)' })
+  @IsString()
+  @Length(4, 7)
   color?: string;
 }

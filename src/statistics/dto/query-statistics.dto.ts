@@ -1,40 +1,22 @@
 // src/statistics/dto/query-statistics.dto.ts
-import { Transform } from 'class-transformer';
+import { ApiPropertyOptional } from '@nestjs/swagger';
+import { Transform, Type } from 'class-transformer';
 import { IsInt, IsOptional, Max, Min } from 'class-validator';
 
-export class QueryOverviewDto {
+export class StatsQueryDto {
+  @ApiPropertyOptional({ description: '조회할 연도 (YYYY)', example: 2024 })
   @IsOptional()
-  @Transform(({ value }) => parseInt(value))
   @IsInt()
-  @Min(2020)
-  @Max(2030)
+  @Type(() => Number)
+  @Min(2000)
+  @Max(2100)
   year?: number;
 
+  @ApiPropertyOptional({ description: '조회할 월 (1-12)', example: 7 })
   @IsOptional()
-  @Transform(({ value }) => parseInt(value))
   @IsInt()
+  @Type(() => Number)
   @Min(1)
   @Max(12)
   month?: number;
-}
-
-export class QueryCategoriesDto extends QueryOverviewDto {}
-
-export class QueryTrendsDto extends QueryOverviewDto {}
-
-export class QueryBestDto extends QueryOverviewDto {
-  @IsOptional()
-  @Transform(({ value }) => parseInt(value))
-  @IsInt()
-  @Min(1)
-  @Max(100)
-  limit?: number = 10;
-}
-
-export class QueryMonthlyDto {
-  @Transform(({ value }) => parseInt(value))
-  @IsInt()
-  @Min(2020)
-  @Max(2030)
-  year: number;
 }

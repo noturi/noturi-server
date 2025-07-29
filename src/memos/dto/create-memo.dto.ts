@@ -1,29 +1,34 @@
+import { ApiProperty } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
-import { IsNumber, IsOptional, IsString, IsUUID, Max, MaxLength, Min, Validate } from 'class-validator';
+import { IsDateString, IsNotEmpty, IsNumber, IsOptional, IsString, IsUUID, Length, Max, Min } from 'class-validator';
 import { IsValidRating } from 'src/common/validators/validator';
 
 export class CreateMemoDto {
+  @ApiProperty({ description: '메모 제목 (선택)', example: '인셉션 감상' })
   @IsOptional()
   @IsString()
-  @MaxLength(255, { message: '제목은 255자를 초과할 수 없습니다' })
+  @Length(1, 100)
   title?: string;
 
+  @ApiProperty({ description: '메모 본문 (선택)', example: '꿈 속의 꿈, 정말 대단한 영화였다.' })
   @IsOptional()
   @IsString()
-  @MaxLength(5000, { message: '내용은 5000자를 초과할 수 없습니다' })
   content?: string;
 
-  @IsNumber({ maxDecimalPlaces: 1 }, { message: '별점은 소수점 첫째 자리까지만 입력 가능합니다' })
-  @Min(1.0, { message: '별점은 최소 1.0점이어야 합니다' })
-  @Max(5.0, { message: '별점은 최대 5.0점이어야 합니다' })
+  @ApiProperty({ description: '평점 (1.0 ~ 5.0, 0.5 단위)', example: 4.5 })
+  @IsNumber()
+  @Min(1.0)
+  @Max(5.0)
   @Transform(({ value }) => parseFloat(value))
-  @Validate(IsValidRating)
   rating: number;
 
-  @IsUUID(4, { message: '올바른 카테고리 ID를 입력해주세요' })
-  categoryId: string;
-
+  @ApiProperty({ description: '경험 날짜 (YYYY-MM-DD)', example: '2024-07-30', required: false })
   @IsOptional()
-  @Transform(({ value }) => (value ? new Date(value) : undefined))
-  experienceDate?: Date;
+  @IsDateString()
+  experienceDate?: string;
+
+  @ApiProperty({ description: '카테고리 ID', example: 'a1b2c3d4-e5f6-g7h8-i9j0-k1l2m3n4o5p6' })
+  @IsUUID(4)
+  @IsNotEmpty()
+  categoryId: string;
 }

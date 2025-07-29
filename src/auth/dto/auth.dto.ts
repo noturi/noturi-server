@@ -1,4 +1,5 @@
-import { IsNotEmpty, IsString } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { IsNotEmpty, IsString, IsOptional } from 'class-validator';
 
 export interface GoogleUser {
   googleId: string;
@@ -7,23 +8,46 @@ export interface GoogleUser {
   picture: string;
 }
 
-interface UserCategory {
+class UserCategory {
+  @ApiProperty()
   id: string;
+
+  @ApiProperty()
   name: string;
+
+  @ApiProperty({ nullable: true })
   color: string | null;
 }
 
-export interface LoginResponse {
+class UserForLoginResponse {
+  @ApiProperty()
+  id: string;
+
+  @ApiProperty()
+  email: string;
+
+  @ApiProperty()
+  name: string;
+
+  @ApiProperty()
+  nickname: string;
+
+  @ApiProperty({ required: false, nullable: true })
+  avatarUrl?: string;
+
+  @ApiProperty({ type: () => [UserCategory] })
+  categories: UserCategory[];
+}
+
+export class LoginResponse {
+  @ApiProperty()
   accessToken: string;
+
+  @ApiProperty()
   refreshToken: string;
-  user: {
-    id: string;
-    email: string;
-    name: string;
-    nickname: string;
-    avatarUrl?: string;
-    categories: UserCategory[];
-  };
+
+  @ApiProperty({ type: () => UserForLoginResponse })
+  user: UserForLoginResponse;
 }
 
 export interface JwtPayload {
@@ -40,6 +64,8 @@ export class RefreshTokenDto {
 }
 
 export class LogoutDto {
+  @ApiPropertyOptional()
   @IsString()
-  refreshToken: string;
+  @IsOptional()
+  refreshToken?: string;
 }

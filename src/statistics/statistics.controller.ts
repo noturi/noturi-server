@@ -1,13 +1,8 @@
 // src/statistics/statistics.controller.ts
 import { Controller, Get, Query, Request, UseGuards } from '@nestjs/common';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'; // 경로 수정
-import {
-  QueryBestDto,
-  QueryCategoriesDto,
-  QueryMonthlyDto,
-  QueryOverviewDto,
-  QueryTrendsDto,
-} from './dto/query-statistics.dto';
+import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
+import { StatsQueryDto } from './dto';
 import {
   BestResponseDto,
   CategoriesResponseDto,
@@ -18,56 +13,69 @@ import {
 } from './dto/response-statistics.dto';
 import { StatisticsService } from './statistics.service';
 
+@ApiTags('Statistics')
+@ApiBearerAuth()
 @Controller('statistics')
 @UseGuards(JwtAuthGuard)
 export class StatisticsController {
   constructor(private readonly statisticsService: StatisticsService) {}
 
   @Get('overview')
-  async getOverview(@Request() req, @Query() query: QueryOverviewDto): Promise<OverviewResponseDto> {
-    const userId = req.user.id; // JWT에서 실제 사용자 ID 가져오기
+  @ApiOperation({ summary: '전체 통계 개요', description: '지정된 기간의 전체 통계 개요를 조회합니다.' })
+  @ApiResponse({ status: 200, description: '성공', type: OverviewResponseDto })
+  getOverview(@Request() req, @Query() query: StatsQueryDto) {
+    const userId = req.user.id;
     return this.statisticsService.getOverviewStats(userId, query.year, query.month);
   }
 
   @Get('categories')
-  async getCategories(@Request() req, @Query() query: QueryCategoriesDto): Promise<CategoriesResponseDto> {
+  @ApiOperation({ summary: '카테고리별 통계', description: '지정된 기간의 카테고리별 통계를 조회합니다.' })
+  @ApiResponse({ status: 200, description: '성공', type: CategoriesResponseDto })
+  async getCategoryStats(@Request() req, @Query() query: StatsQueryDto) {
     const userId = req.user.id;
     const data = await this.statisticsService.getCategoryStats(userId, query.year, query.month);
     return { data };
   }
 
   @Get('trends')
-  async getTrends(@Request() req, @Query() query: QueryTrendsDto): Promise<TrendsResponseDto> {
+  @ApiOperation({ summary: '트렌드 분석', description: '지정된 기간의 별점 분포 및 평가 패턴을 조회합니다.' })
+  @ApiResponse({ status: 200, description: '성공', type: TrendsResponseDto })
+  getTrends(@Request() req, @Query() query: StatsQueryDto) {
     const userId = req.user.id;
     return this.statisticsService.getTrendStats(userId, query.year, query.month);
   }
 
   @Get('best')
-  async getBest(@Request() req, @Query() query: QueryBestDto): Promise<BestResponseDto> {
+  @ApiOperation({ summary: '베스트 경험 조회', description: '지정된 기간의 베스트 경험(4.5점 이상)들을 조회합니다.' })
+  @ApiResponse({ status: 200, description: '성공', type: BestResponseDto })
+  async getBestExperiences(@Request() req, @Query() query: StatsQueryDto) {
     const userId = req.user.id;
-    const data = await this.statisticsService.getBestExperiences(userId, query.limit, query.year, query.month);
+    const data = await this.statisticsService.getBestExperiences(userId, 10, query.year, query.month);
     return { data };
   }
 
   @Get('worst')
-  async getWorst(@Request() req, @Query() query: QueryBestDto): Promise<BestResponseDto> {
+  @ApiOperation({ summary: '비추천 경험 조회', description: '지정된 기간의 비추천 경험(2.5점 이하)들을 조회합니다.' })
+  @ApiResponse({ status: 200, description: '성공', type: BestResponseDto })
+  async getWorstExperiences(@Request() req, @Query() query: StatsQueryDto) {
     const userId = req.user.id;
-    const data = await this.statisticsService.getWorstExperiences(userId, query.limit, query.year, query.month);
+    const data = await this.statisticsService.getWorstExperiences(userId, 5, query.year, query.month);
     return { data };
   }
 
   @Get('monthly')
-  async getMonthly(@Request() req, @Query() query: QueryMonthlyDto): Promise<MonthlyResponseDto> {
+  @ApiOperation({ summary: '월별 통계', description: '지정된 연도의 월별 통계를 조회합니다.' })
+  @ApiResponse({ status: 200, description: '성공', type: MonthlyResponseDto })
+  async getMonthlyStats(@Request() req, @Query() query: StatsQueryDto) {
     const userId = req.user.id;
     const data = await this.statisticsService.getMonthlyStats(userId, query.year);
-    return {
-      year: query.year,
-      data,
-    };
+    return { year: query.year, data };
   }
 
   @Get('summary')
-  async getSummary(@Request() req, @Query() query: QueryOverviewDto): Promise<SummaryResponseDto> {
+  @ApiOperation({ summary: '통계 요약 (공유용)', description: '지정된 기간의 통계 요약을 조회합니다.' })
+  @ApiResponse({ status: 200, description: '성공', type: SummaryResponseDto })
+  getSummary(@Request() req, @Query() query: StatsQueryDto) {
     const userId = req.user.id;
     return this.statisticsService.getStatsSummary(userId, query.year, query.month);
   }
