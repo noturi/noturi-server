@@ -7,46 +7,33 @@ import { CreateCategoryDto, UpdateCategoryDto } from './dto';
 export class CategoriesService {
   constructor(private prisma: PrismaService) {}
 
-  // 방법 1: _count 없이 별도로 계산
-  async findAll(userId: string) {
-    const categories = await this.prisma.category.findMany({
+  findAll(userId: string) {
+    return this.prisma.category.findMany({
       where: { userId },
+      include: {
+        _count: {
+          select: { memos: true },
+        },
+      },
       orderBy: { createdAt: 'asc' },
     });
-
-    // 각 카테고리별 메모 개수 추가
-    const categoriesWithCount = await Promise.all(
-      categories.map(async (category) => {
-        const memoCount = await this.prisma.memo.count({
-          where: { categoryId: category.id },
-        });
-        return {
-          ...category,
-          _count: { memos: memoCount },
-        };
-      }),
-    );
-
-    return categoriesWithCount;
   }
 
   async findOne(userId: string, id: string) {
     const category = await this.prisma.category.findFirst({
       where: { id, userId },
+      include: {
+        _count: {
+          select: { memos: true },
+        },
+      },
     });
 
     if (!category) {
       throw new NotFoundException('카테고리를 찾을 수 없습니다');
     }
 
-    const memoCount = await this.prisma.memo.count({
-      where: { categoryId: id },
-    });
-
-    return {
-      ...category,
-      _count: { memos: memoCount },
-    };
+    return category;
   }
 
   async create(userId: string, createCategoryDto: CreateCategoryDto) {
@@ -63,7 +50,13 @@ export class CategoriesService {
   }
 
   async update(userId: string, id: string, updateCategoryDto: UpdateCategoryDto) {
-    await this.findOne(userId, id);
+    const category = await this.prisma.category.findFirst({
+      where: { id, userId },
+    });
+
+    if (!category) {
+      throw new NotFoundException('카테고리를 찾을 수 없습니다.');
+    }
 
     try {
       return await this.prisma.category.update({
@@ -76,13 +69,20 @@ export class CategoriesService {
   }
 
   async remove(userId: string, id: string) {
-    await this.findOne(userId, id);
-
-    const memoCount = await this.prisma.memo.count({
-      where: { categoryId: id },
+    const category = await this.prisma.category.findFirst({
+      where: { id, userId },
+      include: {
+        _count: {
+          select: { memos: true },
+        },
+      },
     });
 
-    if (memoCount > 0) {
+    if (!category) {
+      throw new NotFoundException('카테고리를 찾을 수 없습니다');
+    }
+
+    if (category._count.memos > 0) {
       throw new ConflictException('메모가 있는 카테고리는 삭제할 수 없습니다');
     }
 
