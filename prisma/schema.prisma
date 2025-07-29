@@ -1,4 +1,5 @@
 // prisma/schema.prisma
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -35,51 +36,79 @@ model User {
 }
 
 model Category {
-  id        String   @id @default(uuid())
+  id        String          @id @default(uuid())
   name      String
-  color     String?  // 향후 UI 색상용 (#FF5733 형태)
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  color     String?         // UI 색상용
+  user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId    String
   memos     Memo[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  fields    CategoryField[]
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
 
-  // 같은 유저 내에서 카테고리명 중복 방지
   @@unique([userId, name])
   @@index([userId])
   @@map("categories")
 }
 
+model CategoryField {
+  id         String    @id @default(uuid())
+  name       String    // ex: 감독, 저자
+  category   Category  @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  categoryId String
+  memoFields MemoCustomField[]
+
+  @@unique([categoryId, name])
+  @@index([categoryId])
+  @@map("category_fields")
+}
+
 model Memo {
-  id             String    @id @default(uuid())
-  title          String?   // 제목 (선택사항)
-  content        String?   // 본문 내용
-  rating         Float     // 1.0 ~ 5.0 (0.5 단위)
-  experienceDate DateTime? // 실제 경험한 날짜 (향후 기능)
-  
-  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id             String             @id @default(uuid())
+  title          String?            // 선택사항
+  content        String?            // 본문
+  rating         Decimal            @db.Decimal(2,1) // 1.0~5.0, 0.5단위
+  experienceDate DateTime?          // 경험 날짜 (optional)
+
+  user           User               @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId         String
-  category       Category  @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  category       Category           @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   categoryId     String
-  
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+
+  customFields   MemoCustomField[]
+
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
 
   @@index([userId])
   @@index([categoryId])
   @@index([rating])
   @@index([createdAt])
-  @@index([userId, rating]) // 통계 쿼리 최적화용
-  @@index([userId, categoryId]) // 카테고리별 조회 최적화용
+  @@index([userId, rating])
+  @@index([userId, categoryId])
   @@map("memos")
 }
 
+model MemoCustomField {
+  id              String         @id @default(uuid())
+  value           String         
+
+  memo            Memo           @relation(fields: [memoId], references: [id], onDelete: Cascade)
+  memoId          String
+  categoryField   CategoryField  @relation(fields: [categoryFieldId], references: [id], onDelete: Cascade)
+  categoryFieldId String
+
+  @@unique([memoId, categoryFieldId])
+  @@index([memoId])
+  @@map("memo_custom_fields")
+}
+
 model RefreshToken {
-  id        String    @id @default(uuid())
-  token     String    @unique
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id        String   @id @default(uuid())
+  token     String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId    String
-  createdAt DateTime  @default(now())
+  createdAt DateTime @default(now())
   expiresAt DateTime
   revokedAt DateTime?
 
