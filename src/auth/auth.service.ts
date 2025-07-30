@@ -3,11 +3,15 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { User } from '@prisma/client';
 import { PrismaService } from 'prisma/prisma.service';
-import { DEFAULT_CATEGORIES } from '../common/constants';
+import { DEFAULT_CATEGORIES, TIME_CONSTANTS } from '../common/constants';
 import { GoogleUser, JwtPayload, LoginResponse } from './dto/auth.dto';
+import { UserWithCategories } from '../common/types/auth.types';
+import { getEnvConfig } from '../common/config/env.config';
 
 @Injectable()
 export class AuthService {
+  private readonly envConfig = getEnvConfig();
+
   constructor(
     private prisma: PrismaService,
     private jwtService: JwtService,
@@ -140,7 +144,7 @@ export class AuthService {
   }
 
   // JWT 토큰 생성
-  async generateTokens(user: User & { categories: any[] }): Promise<LoginResponse> {
+  async generateTokens(user: UserWithCategories): Promise<LoginResponse> {
     const payload: JwtPayload = {
       sub: user.id,
       email: user.email,
@@ -148,10 +152,10 @@ export class AuthService {
 
     const [accessToken, refreshToken] = await Promise.all([
       this.jwtService.signAsync(payload, {
-        expiresIn: process.env.JWT_EXPIRES_IN,
+        expiresIn: this.envConfig.JWT_EXPIRES_IN,
       }),
       this.jwtService.signAsync(payload, {
-        expiresIn: process.env.REFRESH_TOKEN_EXPIRES_IN,
+        expiresIn: this.envConfig.REFRESH_TOKEN_EXPIRES_IN,
       }),
     ]);
 
@@ -160,7 +164,7 @@ export class AuthService {
       data: {
         token: refreshToken,
         userId: user.id,
-        expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30일
+        expiresAt: new Date(Date.now() + TIME_CONSTANTS.REFRESH_TOKEN_EXPIRES_MS),
       },
     });
 
@@ -206,7 +210,7 @@ export class AuthService {
       });
 
       // 새 토큰 발급
-      return this.generateTokens(storedToken.user as User & { categories: any[] });
+      return this.generateTokens(storedToken.user as UserWithCategories);
     } catch (error) {
       throw new UnauthorizedException('유효하지 않은 리프레시 토큰입니다');
     }
