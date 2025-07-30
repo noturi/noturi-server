@@ -2,6 +2,7 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'prisma/prisma.service';
 import { CreateCategoryDto, UpdateCategoryDto } from './dto';
+import { PrismaErrorHandler } from '../common/exceptions/prisma-error.handler';
 
 @Injectable()
 export class CategoriesService {
@@ -54,7 +55,7 @@ export class CategoriesService {
         },
       });
     } catch (error) {
-      this.handlePrismaError(error);
+      PrismaErrorHandler.handle(error);
     }
   }
 
@@ -73,7 +74,7 @@ export class CategoriesService {
         data: updateCategoryDto,
       });
     } catch (error) {
-      this.handlePrismaError(error);
+      PrismaErrorHandler.handle(error);
     }
   }
 
@@ -100,10 +101,4 @@ export class CategoriesService {
     });
   }
 
-  private handlePrismaError(error: any): never {
-    if (error.code === 'P2002') {
-      throw new ConflictException('이미 존재하는 카테고리 이름입니다');
-    }
-    throw error;
-  }
 }
