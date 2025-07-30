@@ -15,9 +15,9 @@ export class CreateMemoDto {
   @IsString()
   content?: string;
 
-  @ApiProperty({ description: '평점 (1.0 ~ 5.0, 0.5 단위)', example: 4.5 })
+  @ApiProperty({ description: '평점 (0.0 ~ 5.0, 0.5 단위)', example: 4.5 })
   @IsNumber()
-  @Min(1.0)
+  @Min(0.0)
   @Max(5.0)
   @Transform(({ value }) => parseFloat(value))
   rating: number;
