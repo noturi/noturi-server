@@ -15,7 +15,7 @@ export class CategoriesService {
           select: { memos: true },
         },
       },
-      orderBy: { createdAt: 'asc' },
+      orderBy: { createdAt: 'desc' },
     });
 
     return categories.map(({ _count, ...category }) => ({
