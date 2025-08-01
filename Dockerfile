@@ -5,6 +5,7 @@ RUN npm install -g pnpm
 RUN pnpm install --frozen-lockfile --shamefully-hoist
 COPY prisma ./prisma
 RUN pnpm run db:generate
+RUN pnpm run db:deploy
 COPY . .
 RUN pnpm run build
 
