@@ -1,6 +1,7 @@
 // src/statistics/statistics.service.ts
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from 'prisma/prisma.service';
+import { createDateRangeFilter, formatAverageRating } from '../common/utils/data.utils';
 
 @Injectable()
 export class StatisticsService {
@@ -11,19 +12,9 @@ export class StatisticsService {
     const whereClause: any = { userId };
 
     // 기간 필터링
-    if (year || month) {
-      whereClause.createdAt = {};
-      if (year && month) {
-        const startDate = new Date(year, month - 1, 1);
-        const endDate = new Date(year, month, 0, 23, 59, 59);
-        whereClause.createdAt.gte = startDate;
-        whereClause.createdAt.lte = endDate;
-      } else if (year) {
-        const startDate = new Date(year, 0, 1);
-        const endDate = new Date(year, 11, 31, 23, 59, 59);
-        whereClause.createdAt.gte = startDate;
-        whereClause.createdAt.lte = endDate;
-      }
+    const dateRange = createDateRangeFilter(year, month);
+    if (dateRange) {
+      whereClause.createdAt = dateRange;
     }
 
     const [totalMemos, avgRatingResult, bestCount, recommendedCount, avoidCount, totalCategories] = await Promise.all([
@@ -46,7 +37,7 @@ export class StatisticsService {
 
     return {
       totalMemos,
-      avgRating: Number((avgRatingResult._avg.rating || 0).toFixed(1)),
+      avgRating: formatAverageRating(avgRatingResult._avg.rating),
       totalCategories,
       bestExperiences: bestCount,
       recommendedExperiences: recommendedCount,
@@ -59,19 +50,9 @@ export class StatisticsService {
     const whereClause: any = { userId };
 
     // 기간 필터링
-    if (year || month) {
-      whereClause.createdAt = {};
-      if (year && month) {
-        const startDate = new Date(year, month - 1, 1);
-        const endDate = new Date(year, month, 0, 23, 59, 59);
-        whereClause.createdAt.gte = startDate;
-        whereClause.createdAt.lte = endDate;
-      } else if (year) {
-        const startDate = new Date(year, 0, 1);
-        const endDate = new Date(year, 11, 31, 23, 59, 59);
-        whereClause.createdAt.gte = startDate;
-        whereClause.createdAt.lte = endDate;
-      }
+    const dateRange = createDateRangeFilter(year, month);
+    if (dateRange) {
+      whereClause.createdAt = dateRange;
     }
 
     const categoryStats = await this.prisma.memo.groupBy({
@@ -101,7 +82,7 @@ export class StatisticsService {
           }),
         ]);
 
-        const avgRating = Number((stat._avg.rating || 0).toFixed(1));
+        const avgRating = formatAverageRating(stat._avg.rating);
 
         // 평가 패턴 분석
         let pattern: string;
@@ -131,19 +112,9 @@ export class StatisticsService {
   async getTrendStats(userId: string, year?: number, month?: number) {
     const whereClause: any = { userId };
 
-    if (year || month) {
-      whereClause.createdAt = {};
-      if (year && month) {
-        const startDate = new Date(year, month - 1, 1);
-        const endDate = new Date(year, month, 0, 23, 59, 59);
-        whereClause.createdAt.gte = startDate;
-        whereClause.createdAt.lte = endDate;
-      } else if (year) {
-        const startDate = new Date(year, 0, 1);
-        const endDate = new Date(year, 11, 31, 23, 59, 59);
-        whereClause.createdAt.gte = startDate;
-        whereClause.createdAt.lte = endDate;
-      }
+    const dateRange = createDateRangeFilter(year, month);
+    if (dateRange) {
+      whereClause.createdAt = dateRange;
     }
 
     const [ratingStats, totalMemos, categoryStats] = await Promise.all([
@@ -181,19 +152,9 @@ export class StatisticsService {
       rating: { gte: 4.5 },
     };
 
-    if (year || month) {
-      whereClause.createdAt = {};
-      if (year && month) {
-        const startDate = new Date(year, month - 1, 1);
-        const endDate = new Date(year, month, 0, 23, 59, 59);
-        whereClause.createdAt.gte = startDate;
-        whereClause.createdAt.lte = endDate;
-      } else if (year) {
-        const startDate = new Date(year, 0, 1);
-        const endDate = new Date(year, 11, 31, 23, 59, 59);
-        whereClause.createdAt.gte = startDate;
-        whereClause.createdAt.lte = endDate;
-      }
+    const dateRange = createDateRangeFilter(year, month);
+    if (dateRange) {
+      whereClause.createdAt = dateRange;
     }
 
     const memos = await this.prisma.memo.findMany({
@@ -227,19 +188,9 @@ export class StatisticsService {
       rating: { lte: 2.5 },
     };
 
-    if (year || month) {
-      whereClause.createdAt = {};
-      if (year && month) {
-        const startDate = new Date(year, month - 1, 1);
-        const endDate = new Date(year, month, 0, 23, 59, 59);
-        whereClause.createdAt.gte = startDate;
-        whereClause.createdAt.lte = endDate;
-      } else if (year) {
-        const startDate = new Date(year, 0, 1);
-        const endDate = new Date(year, 11, 31, 23, 59, 59);
-        whereClause.createdAt.gte = startDate;
-        whereClause.createdAt.lte = endDate;
-      }
+    const dateRange = createDateRangeFilter(year, month);
+    if (dateRange) {
+      whereClause.createdAt = dateRange;
     }
 
     const memos = await this.prisma.memo.findMany({
@@ -301,7 +252,7 @@ export class StatisticsService {
         return {
           month,
           count: memos,
-          avgRating: Number((avgRatingResult._avg.rating || 0).toFixed(1)),
+          avgRating: formatAverageRating(avgRatingResult._avg.rating),
           bestCount,
         };
       }),
