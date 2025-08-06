@@ -1,7 +1,6 @@
 // src/auth/auth.service.ts
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { User } from '@prisma/client';
 import { PrismaService } from 'prisma/prisma.service';
 import { DEFAULT_CATEGORIES, TIME_CONSTANTS } from '../common/constants';
 import { GoogleUser, JwtPayload, LoginResponse } from './dto/auth.dto';
@@ -10,6 +9,7 @@ import { getEnvConfig } from '../common/config/env.config';
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
   private readonly envConfig = getEnvConfig();
 
   constructor(
@@ -41,7 +41,7 @@ export class AuthService {
   }
 
   // 새 Google 사용자 생성
-  private async createGoogleUser(googleUser: GoogleUser) {
+  private async createGoogleUser(googleUser: GoogleUser): Promise<UserWithCategories> {
     const nickname = await this.generateUniqueNickname(googleUser.name);
 
     return this.prisma.$transaction(async (tx) => {
@@ -70,6 +70,10 @@ export class AuthService {
           categories: true,
         },
       });
+
+      if (!userWithCategories) {
+        throw new Error('Failed to create user');
+      }
 
       return userWithCategories;
     });
@@ -212,6 +216,7 @@ export class AuthService {
       // 새 토큰 발급
       return this.generateTokens(storedToken.user as UserWithCategories);
     } catch (error) {
+      this.logger.error('Refresh token validation failed', error);
       throw new UnauthorizedException('유효하지 않은 리프레시 토큰입니다');
     }
   }
