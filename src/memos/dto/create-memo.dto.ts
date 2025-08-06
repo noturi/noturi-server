@@ -1,7 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 import { IsDateString, IsNotEmpty, IsNumber, IsOptional, IsString, IsUUID, Length, Max, Min } from 'class-validator';
-import { IsValidRating } from 'src/common/validators/validator';
 
 export class CreateMemoDto {
   @ApiProperty({ description: '메모 제목 (선택)', example: '인셉션 감상' })
