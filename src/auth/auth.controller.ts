@@ -17,7 +17,7 @@ import { AuthService } from './auth.service';
 import { GoogleUser, LoginResponse, LogoutDto, RefreshTokenDto } from './dto/auth.dto';
 import { GoogleAuthGuard } from './guards/google.auth.guard';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
-import { User } from '@prisma/client';
+import { UserWithCategories } from '../common/types/auth.types';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -41,7 +41,11 @@ export class AuthController {
   async googleAuthCallback(@Req() req: Request, @Res() res: Response) {
     try {
       // Google Strategy에서 검증된 사용자 정보
-      const user = req.user as User & { categories: any[] };
+      const user = req.user as UserWithCategories;
+
+      if (!user) {
+        return res.redirect('http://localhost:19006/auth/error');
+      }
 
       // JWT 토큰 생성
       const tokens = await this.authService.generateTokens(user);
@@ -73,6 +77,9 @@ export class AuthController {
 
       // 사용자 검증 및 JWT 생성
       const user = await this.authService.validateGoogleUser(googleUser);
+      if (!user) {
+        throw new UnauthorizedException('User validation failed');
+      }
       const tokens = await this.authService.generateTokens(user);
 
       return tokens;
@@ -97,6 +104,9 @@ export class AuthController {
       };
 
       const user = await this.authService.validateGoogleUser(googleUser);
+      if (!user) {
+        throw new UnauthorizedException('User validation failed');
+      }
       const tokens = await this.authService.generateTokens(user);
 
       return tokens;
