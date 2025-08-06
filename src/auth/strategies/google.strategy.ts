@@ -9,8 +9,8 @@ import { GoogleUser } from '../dto/auth.dto';
 export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
   constructor(private authService: AuthService) {
     super({
-      clientID: process.env.GOOGLE_CLIENT_ID,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
+      clientID: process.env.GOOGLE_CLIENT_ID!,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
       callbackURL: 'http://localhost:3000/auth/google/callback',
       scope: ['email', 'profile'],
     });
@@ -28,9 +28,9 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
 
       const user = await this.authService.validateGoogleUser(googleUser);
 
-      done(null, user);
+      done(null, user || false);
     } catch (error) {
-      done(error, null);
+      done(error, false);
     }
   }
 }
