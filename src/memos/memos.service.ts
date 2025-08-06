@@ -1,8 +1,10 @@
 // src/memos/memos.service.ts
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from 'prisma/prisma.service';
 import { CreateMemoDto, QueryMemoDto, UpdateMemoDto } from './dto';
+import { convertMemoRating, convertMemoRatings } from '../common/utils/data.utils';
+import { validateUserOwnsCategory } from '../common/utils/auth.utils';
 
 @Injectable()
 export class MemosService {
@@ -10,7 +12,7 @@ export class MemosService {
 
   // 메모 생성
   async create(userId: string, createMemoDto: CreateMemoDto) {
-    await this.validateCategoryOwnership(userId, createMemoDto.categoryId);
+    await validateUserOwnsCategory(this.prisma, userId, createMemoDto.categoryId);
 
     const memo = await this.prisma.memo.create({
       data: {
@@ -27,10 +29,7 @@ export class MemosService {
         },
       },
     });
-    return {
-      ...memo,
-      rating: Number(memo.rating),
-    };
+    return convertMemoRating(memo);
   }
 
   // 메모 목록 조회 (필터링 + 페이징)
@@ -98,7 +97,7 @@ export class MemosService {
     ]);
 
     return {
-      data: memos.map((memo) => ({ ...memo, rating: Number(memo.rating) })),
+      data: convertMemoRatings(memos),
       meta: {
         total,
         page,
@@ -127,10 +126,7 @@ export class MemosService {
       throw new NotFoundException('메모를 찾을 수 없습니다');
     }
 
-    return {
-      ...memo,
-      rating: Number(memo.rating),
-    };
+    return convertMemoRating(memo);
   }
 
   // 메모 수정
@@ -145,7 +141,7 @@ export class MemosService {
 
     // 카테고리 변경하는 경우 소유권 확인
     if (updateMemoDto.categoryId) {
-      await this.validateCategoryOwnership(userId, updateMemoDto.categoryId);
+      await validateUserOwnsCategory(this.prisma, userId, updateMemoDto.categoryId);
     }
 
     const updatedMemo = await this.prisma.memo.update({
@@ -162,10 +158,7 @@ export class MemosService {
       },
     });
 
-    return {
-      ...updatedMemo,
-      rating: Number(updatedMemo.rating),
-    };
+    return convertMemoRating(updatedMemo);
   }
 
   // 메모 삭제
@@ -237,7 +230,7 @@ export class MemosService {
       orderBy: [{ rating: 'desc' }, { createdAt: 'desc' }],
       take: limit,
     });
-    return memos.map((memo) => ({ ...memo, rating: Number(memo.rating) }));
+    return convertMemoRatings(memos);
   }
 
   // 최근 메모들
@@ -256,19 +249,7 @@ export class MemosService {
       orderBy: { createdAt: 'desc' },
       take: limit,
     });
-    return memos.map((memo) => ({ ...memo, rating: Number(memo.rating) }));
+    return convertMemoRatings(memos);
   }
 
-  // 카테고리 소유권 확인
-  private async validateCategoryOwnership(userId: string, categoryId: string) {
-    const category = await this.prisma.category.findFirst({
-      where: { id: categoryId, userId },
-    });
-
-    if (!category) {
-      throw new BadRequestException('유효하지 않은 카테고리입니다');
-    }
-
-    return category;
-  }
 }
