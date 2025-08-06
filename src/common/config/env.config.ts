@@ -18,7 +18,7 @@ export const getEnvConfig = (): EnvConfig => {
   };
 
   // 필수 환경변수 검증
-  const requiredVars = ['JWT_SECRET', 'GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET', 'DATABASE_URL'] as const;
+  const requiredVars = ['JWT_SECRET', 'GOOGLE_CLIENT_ID', 'DATABASE_URL'] as const;
   
   for (const varName of requiredVars) {
     if (!config[varName]) {
