@@ -26,14 +26,14 @@ class UserForLoginResponse {
   @ApiProperty()
   email: string;
 
-  @ApiProperty()
-  name: string;
+  @ApiProperty({ nullable: true })
+  name: string | null;
 
   @ApiProperty()
   nickname: string;
 
   @ApiProperty({ required: false, nullable: true })
-  avatarUrl?: string;
+  avatarUrl?: string | null;
 
   @ApiProperty({ type: () => [UserCategory] })
   categories: UserCategory[];
