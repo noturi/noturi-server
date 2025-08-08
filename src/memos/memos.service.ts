@@ -53,8 +53,22 @@ export class MemosService {
       where.categoryId = { in: categoryIds };
     }
 
-    if (rating) {
-      where.rating = rating;
+    if (rating !== undefined && rating !== null && !Number.isNaN(rating)) {
+      if (Number.isInteger(rating)) {
+        if (rating >= 5) {
+          // 5인 경우는 5.0만
+          where.rating = { gte: 5, lte: 5 };
+        } else if (rating >= 1) {
+          // 정수 N이면 N.0 이상 (N+1).0 미만
+          where.rating = { gte: rating, lt: rating + 1 };
+        } else {
+          // 방어적 처리: 유효 범위 밖 정수는 정확히 일치로 폴백
+          where.rating = rating;
+        }
+      } else {
+        // 소수 입력 시는 정확히 일치
+        where.rating = rating;
+      }
     }
 
     if (search) {
