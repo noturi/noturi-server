@@ -35,7 +35,7 @@ export class MemosService {
   // 메모 목록 조회 (필터링 + 페이징)
   async findAll(userId: string, queryDto: QueryMemoDto) {
     const {
-      categoryId,
+      categoryIds,
       rating,
       search,
       page = 1,
@@ -49,8 +49,8 @@ export class MemosService {
     // where 조건 구성
     const where: Prisma.MemoWhereInput = { userId };
 
-    if (categoryId) {
-      where.categoryId = categoryId;
+    if (categoryIds && categoryIds.length > 0) {
+      where.categoryId = { in: categoryIds };
     }
 
     if (rating) {
@@ -251,5 +251,4 @@ export class MemosService {
     });
     return convertMemoRatings(memos);
   }
-
 }

@@ -1,13 +1,33 @@
 // src/memos/dto/query-memo.dto.ts
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform, Type } from 'class-transformer';
-import { IsDateString, IsNumber, IsOptional, IsString, IsUUID, Max, Min } from 'class-validator';
+import { IsArray, IsDateString, IsNumber, IsOptional, IsString, IsUUID, Max, Min } from 'class-validator';
 
 export class QueryMemoDto {
-  @ApiPropertyOptional({ description: '카테고리 ID로 필터링', example: 'a1b2c3d4-e5f6-g7h8-i9j0-k1l2m3n4o5p6' })
+  @ApiPropertyOptional({
+    description: '여러 카테고리 ID로 필터링 (예: ?categoryIds=uuid1&categoryIds=uuid2 또는 ?categoryIds=uuid1,uuid2)',
+    type: [String],
+  })
   @IsOptional()
-  @IsUUID(4)
-  categoryId?: string;
+  @IsArray()
+  @IsUUID(4, { each: true })
+  @Transform(({ value }) => {
+    if (value === undefined || value === null) return undefined;
+    if (Array.isArray(value)) {
+      return value
+        .flatMap((v) => (typeof v === 'string' ? v.split(',') : v))
+        .map((v) => (typeof v === 'string' ? v.trim() : v))
+        .filter((v) => !!v);
+    }
+    if (typeof value === 'string') {
+      return value
+        .split(',')
+        .map((v) => v.trim())
+        .filter((v) => !!v);
+    }
+    return undefined;
+  })
+  categoryIds?: string[];
 
   @ApiPropertyOptional({ description: '평점으로 필터링', example: 4.5 })
   @IsOptional()
