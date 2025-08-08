@@ -179,15 +179,26 @@ export class MemosService {
   async remove(userId: string, id: string) {
     const memo = await this.prisma.memo.findFirst({
       where: { id, userId },
+      include: {
+        category: {
+          select: { id: true, name: true, color: true },
+        },
+      },
     });
 
     if (!memo) {
       throw new NotFoundException('메모를 찾을 수 없습니다.');
     }
 
-    return this.prisma.memo.delete({
+    const deleted = await this.prisma.memo.delete({
       where: { id },
+      include: {
+        category: {
+          select: { id: true, name: true, color: true },
+        },
+      },
     });
+    return convertMemoRating(deleted);
   }
 
   // 카테고리별 메모 통계

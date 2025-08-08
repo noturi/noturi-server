@@ -12,7 +12,7 @@ import {
   Request,
   UseGuards,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiParam, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CreateMemoDto, MemoDto, PaginatedMemosDto, QueryMemoDto, UpdateMemoDto } from './dto';
 import { MemosService } from './memos.service';
@@ -87,14 +87,21 @@ export class MemosController {
   @Patch(':id')
   @ApiOperation({ summary: '메모 수정' })
   @ApiResponse({ status: 200, description: '성공', type: MemoDto })
-  update(@Request() req: AuthenticatedRequest, @Param('id', ParseUUIDPipe) id: string, @Body() updateMemoDto: UpdateMemoDto) {
+  update(
+    @Request() req: AuthenticatedRequest,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() updateMemoDto: UpdateMemoDto,
+  ) {
     const userId = req.user.id;
     return this.memosService.update(userId, id, updateMemoDto);
   }
 
   @Delete(':id')
-  @ApiOperation({ summary: '메모 삭제' })
-  @ApiResponse({ status: 200, description: '성공', type: MemoDto })
+  @ApiOperation({ summary: '메모 삭제', description: '지정한 메모를 삭제합니다.' })
+  @ApiParam({ name: 'id', description: '메모 ID (UUID v4)', required: true })
+  @ApiResponse({ status: 200, description: '삭제 성공', type: MemoDto })
+  @ApiResponse({ status: 401, description: '인증되지 않음' })
+  @ApiResponse({ status: 404, description: '메모를 찾을 수 없음' })
   remove(@Request() req: AuthenticatedRequest, @Param('id', ParseUUIDPipe) id: string) {
     const userId = req.user.id;
     return this.memosService.remove(userId, id);
