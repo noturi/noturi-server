@@ -1,6 +1,6 @@
 // src/categories/categories.controller.ts
 import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Patch, Post, Request, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CategoriesService } from './categories.service';
 import { CategoryDto, CreateCategoryDto, UpdateCategoryDto } from './dto';
@@ -48,13 +48,18 @@ export class CategoriesController {
   @ApiResponse({ status: 400, description: '잘못된 요청' })
   @ApiResponse({ status: 401, description: '인증되지 않음' })
   @ApiResponse({ status: 404, description: '카테고리를 찾을 수 없음' })
-  update(@Request() req: AuthenticatedRequest, @Param('id', ParseUUIDPipe) id: string, @Body() updateCategoryDto: UpdateCategoryDto) {
+  update(
+    @Request() req: AuthenticatedRequest,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() updateCategoryDto: UpdateCategoryDto,
+  ) {
     const userId = req.user.id;
     return this.categoriesService.update(userId, id, updateCategoryDto);
   }
 
   @Delete(':id')
   @ApiOperation({ summary: '카테고리 삭제', description: 'ID로 특정 카테고리를 삭제합니다.' })
+  @ApiParam({ name: 'id', description: '카테고리 ID (UUID v4)', required: true })
   @ApiResponse({ status: 200, description: '카테고리 삭제 성공', type: CategoryDto })
   @ApiResponse({ status: 401, description: '인증되지 않음' })
   @ApiResponse({ status: 404, description: '카테고리를 찾을 수 없음' })
