@@ -1,5 +1,5 @@
 // src/categories/categories.service.ts
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'prisma/prisma.service';
 import { CreateCategoryDto, UpdateCategoryDto } from './dto';
 import { PrismaErrorHandler } from '../common/exceptions/prisma-error.handler';
@@ -93,12 +93,19 @@ export class CategoriesService {
     }
 
     if (category._count.memos > 0) {
-      throw new ConflictException('메모가 있는 카테고리는 삭제할 수 없습니다');
+      throw new HttpException(
+        {
+          statusCode: HttpStatus.CONFLICT,
+          code: 4092, // AppErrorCode.CATEGORY_HAS_MEMOS
+          message: '메모가 있는 카테고리는 삭제할 수 없습니다',
+          details: { memoCount: category._count.memos },
+        },
+        HttpStatus.CONFLICT,
+      );
     }
 
     return this.prisma.category.delete({
       where: { id },
     });
   }
-
 }
