@@ -5,7 +5,8 @@ import { IsArray, IsDateString, IsNumber, IsOptional, IsString, IsUUID, Max, Min
 
 export class QueryMemoDto {
   @ApiPropertyOptional({
-    description: '여러 카테고리 ID로 필터링 (예: ?categoryIds=uuid1&categoryIds=uuid2 또는 ?categoryIds=uuid1,uuid2)',
+    description:
+      '여러 카테고리 ID로 필터링 (쿼리 키: categoryIds만 허용). 예: ?categoryIds=uuid1&categoryIds=uuid2 또는 ?categoryIds=uuid1,uuid2',
     type: [String],
   })
   @IsOptional()
