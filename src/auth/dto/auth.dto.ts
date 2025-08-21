@@ -8,6 +8,12 @@ export interface GoogleUser {
   picture: string;
 }
 
+export interface AppleUser {
+  appleId: string;
+  email: string;
+  name?: string;
+}
+
 class UserCategory {
   @ApiProperty()
   id: string;

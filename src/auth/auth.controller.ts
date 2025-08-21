@@ -14,7 +14,7 @@ import {
 import { ApiBearerAuth, ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Request, Response } from 'express';
 import { AuthService } from './auth.service';
-import { GoogleUser, LoginResponse, LogoutDto, RefreshTokenDto } from './dto/auth.dto';
+import { GoogleUser, AppleUser, LoginResponse, LogoutDto, RefreshTokenDto } from './dto/auth.dto';
 import { GoogleAuthGuard } from './guards/google.auth.guard';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { UserWithCategories } from '../common/types/auth.types';
@@ -169,5 +169,59 @@ export class AuthController {
     };
 
     return this.authService.generateTokens(testUser as any);
+  }
+
+  @Post('apple')
+  @ApiOperation({
+    summary: 'Apple 로그인',
+    description: 'Apple Identity Token으로 로그인합니다.',
+  })
+  @ApiResponse({ status: 200, description: '로그인 성공', type: LoginResponse })
+  @ApiBody({
+    description: 'Apple Identity Token',
+    schema: { type: 'object', properties: { identityToken: { type: 'string' } } },
+  })
+  async appleAuth(@Body() body: { identityToken: string }) {
+    try {
+      // Apple ID Token 검증
+      const appleUser = await this.authService.verifyAppleToken(body.identityToken);
+
+      // 사용자 검증 및 JWT 생성
+      const user = await this.authService.validateAppleUser(appleUser);
+      if (!user) {
+        throw new UnauthorizedException('User validation failed');
+      }
+      const tokens = await this.authService.generateTokens(user);
+
+      return tokens;
+    } catch (error) {
+      throw new UnauthorizedException('Invalid Apple token');
+    }
+  }
+
+  @Post('apple/native')
+  @ApiOperation({
+    summary: 'Native Apple 로그인',
+    description: 'Native 클라이언트에서 받은 Apple 사용자 정보로 로그인합니다.',
+  })
+  @ApiResponse({ status: 200, description: '로그인 성공', type: LoginResponse })
+  async appleNativeAuth(@Body() body: { appleId: string; email: string; name?: string }) {
+    try {
+      const appleUser: AppleUser = {
+        appleId: body.appleId,
+        email: body.email,
+        name: body.name,
+      };
+
+      const user = await this.authService.validateAppleUser(appleUser);
+      if (!user) {
+        throw new UnauthorizedException('User validation failed');
+      }
+      const tokens = await this.authService.generateTokens(user);
+
+      return tokens;
+    } catch (error) {
+      throw new UnauthorizedException('Invalid Apple user data');
+    }
   }
 }

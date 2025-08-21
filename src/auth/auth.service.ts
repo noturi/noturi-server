@@ -3,9 +3,11 @@ import { Injectable, UnauthorizedException, Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from 'prisma/prisma.service';
 import { DEFAULT_CATEGORIES, TIME_CONSTANTS } from '../common/constants';
-import { GoogleUser, JwtPayload, LoginResponse } from './dto/auth.dto';
+import { GoogleUser, AppleUser, JwtPayload, LoginResponse } from './dto/auth.dto';
 import { UserWithCategories } from '../common/types/auth.types';
 import { getEnvConfig } from '../common/config/env.config';
+import * as jwt from 'jsonwebtoken';
+import { JWK } from 'node-jose';
 
 @Injectable()
 export class AuthService {
@@ -38,6 +40,88 @@ export class AuthService {
     }
 
     return user;
+  }
+
+  // Apple 사용자 검증 및 처리
+  async validateAppleUser(appleUser: AppleUser) {
+    // 기존 사용자 찾기
+    let user = await this.prisma.user.findFirst({
+      where: {
+        OR: [{ email: appleUser.email }, { providerId: appleUser.appleId, provider: 'APPLE' }],
+      },
+      include: {
+        categories: true,
+      },
+    });
+
+    if (!user) {
+      // 새 사용자 생성
+      user = await this.createAppleUser(appleUser);
+    } else {
+      // 기존 사용자 정보 업데이트
+      user = await this.updateAppleUser(user.id, appleUser);
+    }
+
+    return user;
+  }
+
+  // Apple ID Token 검증
+  async verifyAppleToken(identityToken: string): Promise<AppleUser> {
+    try {
+      const decodedToken = jwt.decode(identityToken, { complete: true });
+      
+      if (!decodedToken || typeof decodedToken === 'string') {
+        throw new Error('Invalid token format');
+      }
+
+      const { header } = decodedToken;
+      
+      // Apple 공개 키 가져오기
+      const applePublicKeys = await this.getApplePublicKeys();
+      const key = applePublicKeys.find((k) => k.kid === header.kid);
+      
+      if (!key) {
+        throw new Error('Unable to find a signing key that matches');
+      }
+
+      // 토큰 검증 (APPLE_CLIENT_ID는 환경변수에서 가져와야 함)
+      const verified = jwt.verify(identityToken, key.publicKey, {
+        algorithms: ['RS256'],
+        audience: process.env.APPLE_CLIENT_ID,
+        issuer: 'https://appleid.apple.com',
+      }) as any;
+
+      return {
+        appleId: verified.sub,
+        email: verified.email,
+        name: verified.name,
+      };
+    } catch (error) {
+      this.logger.error('Apple token verification failed', error);
+      throw new UnauthorizedException('Apple token verification failed');
+    }
+  }
+
+  // Apple 공개 키 가져오기
+  private async getApplePublicKeys() {
+    try {
+      const response = await fetch('https://appleid.apple.com/auth/keys');
+      const data = await response.json();
+      
+      const keys = [];
+      for (const key of data.keys) {
+        const jwkKey = await JWK.asKey(key);
+        keys.push({
+          kid: key.kid,
+          publicKey: jwkKey.toPEM(),
+        });
+      }
+      
+      return keys;
+    } catch (error) {
+      this.logger.error('Failed to fetch Apple public keys', error);
+      throw new Error('Failed to fetch Apple public keys');
+    }
   }
 
   // 새 Google 사용자 생성
@@ -106,6 +190,78 @@ export class AuthService {
       data: {
         name: googleUser.name,
         avatarUrl: googleUser.picture,
+      },
+      include: {
+        categories: true,
+      },
+    });
+
+    // 카테고리가 없으면 기본 카테고리 생성
+    if (updatedUser.categories.length === 0) {
+      await this.prisma.category.createMany({
+        data: DEFAULT_CATEGORIES.map((category) => ({
+          ...category,
+          userId: updatedUser.id,
+        })),
+      });
+
+      // 카테고리 생성 후 최신 정보로 다시 조회
+      return this.prisma.user.findUnique({
+        where: { id: userId },
+        include: {
+          categories: true,
+        },
+      });
+    }
+
+    return updatedUser;
+  }
+
+  // 새 Apple 사용자 생성
+  private async createAppleUser(appleUser: AppleUser): Promise<UserWithCategories> {
+    const nickname = await this.generateUniqueNickname(appleUser.name || 'Apple User');
+
+    return this.prisma.$transaction(async (tx) => {
+      const newUser = await tx.user.create({
+        data: {
+          email: appleUser.email,
+          name: appleUser.name || null,
+          nickname,
+          provider: 'APPLE',
+          providerId: appleUser.appleId,
+          avatarUrl: null,
+        },
+      });
+
+      await tx.category.createMany({
+        data: DEFAULT_CATEGORIES.map((category) => ({
+          ...category,
+          userId: newUser.id,
+        })),
+      });
+
+      // 카테고리 생성 후, 최신 정보를 포함하여 다시 조회 후 반환
+      const userWithCategories = await tx.user.findUnique({
+        where: { id: newUser.id },
+        include: {
+          categories: true,
+        },
+      });
+
+      if (!userWithCategories) {
+        throw new Error('Failed to create user');
+      }
+
+      return userWithCategories;
+    });
+  }
+
+  // 기존 Apple 사용자 정보 업데이트
+  private async updateAppleUser(userId: string, appleUser: AppleUser) {
+    const updatedUser = await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        name: appleUser.name || null,
       },
       include: {
         categories: true,
