@@ -34,8 +34,7 @@ export class StatisticsController {
   @ApiResponse({ status: 200, description: '성공', type: CategoriesResponseDto })
   async getCategoryStats(@Request() req: AuthenticatedRequest, @Query() query: StatsQueryDto) {
     const userId = req.user.id;
-    const data = await this.statisticsService.getCategoryStats(userId, query.year, query.month);
-    return { data };
+    return this.statisticsService.getCategoryStats(userId, query.year, query.month);
   }
 
   @Get('trends')
@@ -51,8 +50,7 @@ export class StatisticsController {
   @ApiResponse({ status: 200, description: '성공', type: BestResponseDto })
   async getBestExperiences(@Request() req: AuthenticatedRequest, @Query() query: StatsQueryDto) {
     const userId = req.user.id;
-    const data = await this.statisticsService.getBestExperiences(userId, 10, query.year, query.month);
-    return { data };
+    return this.statisticsService.getBestExperiences(userId, 10, query.year, query.month);
   }
 
   @Get('worst')
@@ -60,8 +58,7 @@ export class StatisticsController {
   @ApiResponse({ status: 200, description: '성공', type: BestResponseDto })
   async getWorstExperiences(@Request() req: AuthenticatedRequest, @Query() query: StatsQueryDto) {
     const userId = req.user.id;
-    const data = await this.statisticsService.getWorstExperiences(userId, 5, query.year, query.month);
-    return { data };
+    return this.statisticsService.getWorstExperiences(userId, 5, query.year, query.month);
   }
 
   @Get('monthly')
@@ -69,8 +66,7 @@ export class StatisticsController {
   @ApiResponse({ status: 200, description: '성공', type: MonthlyResponseDto })
   async getMonthlyStats(@Request() req: AuthenticatedRequest, @Query() query: StatsQueryDto) {
     const userId = req.user.id;
-    const data = await this.statisticsService.getMonthlyStats(userId, query.year!);
-    return { year: query.year, data };
+    return this.statisticsService.getMonthlyStats(userId, query.year!);
   }
 
   @Get('summary')
