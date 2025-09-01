@@ -1,5 +1,6 @@
-import { Category, User } from '@prisma/client';
 import { Request } from 'express';
+
+import { Category, User } from '@prisma/client';
 
 export interface UserWithCategories extends User {
   categories: Category[];

@@ -69,17 +69,17 @@ export class AuthService {
   async verifyAppleToken(identityToken: string): Promise<AppleUser> {
     try {
       const decodedToken = jwt.decode(identityToken, { complete: true });
-      
+
       if (!decodedToken || typeof decodedToken === 'string') {
         throw new Error('Invalid token format');
       }
 
       const { header } = decodedToken;
-      
+
       // Apple 공개 키 가져오기
       const applePublicKeys = await this.getApplePublicKeys();
       const key = applePublicKeys.find((k) => k.kid === header.kid);
-      
+
       if (!key) {
         throw new Error('Unable to find a signing key that matches');
       }
@@ -107,7 +107,7 @@ export class AuthService {
     try {
       const response = await fetch('https://appleid.apple.com/auth/keys');
       const data = await response.json();
-      
+
       const keys = [];
       for (const key of data.keys) {
         const jwkKey = await JWK.asKey(key);
@@ -116,7 +116,7 @@ export class AuthService {
           publicKey: jwkKey.toPEM(),
         });
       }
-      
+
       return keys;
     } catch (error) {
       this.logger.error('Failed to fetch Apple public keys', error);

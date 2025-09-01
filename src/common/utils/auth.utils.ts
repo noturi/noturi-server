@@ -1,5 +1,5 @@
-import { BadRequestException } from '@nestjs/common';
 import { PrismaService } from 'prisma/prisma.service';
+import { BadRequestException } from '@nestjs/common';
 
 /**
  * 사용자가 특정 카테고리를 소유하고 있는지 확인하는 헬퍼 함수
@@ -21,11 +21,7 @@ export async function validateUserOwnsCategory(
 /**
  * 사용자가 특정 메모를 소유하고 있는지 확인하는 헬퍼 함수
  */
-export async function validateUserOwnsMemo(
-  prisma: PrismaService,
-  userId: string,
-  memoId: string,
-): Promise<void> {
+export async function validateUserOwnsMemo(prisma: PrismaService, userId: string, memoId: string): Promise<void> {
   const memo = await prisma.memo.findFirst({
     where: { id: memoId, userId },
   });

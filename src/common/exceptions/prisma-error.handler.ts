@@ -1,5 +1,7 @@
-import { ConflictException, NotFoundException, BadRequestException, HttpException, HttpStatus } from '@nestjs/common';
+import { BadRequestException, ConflictException, HttpException, HttpStatus, NotFoundException } from '@nestjs/common';
+
 import { Prisma } from '@prisma/client';
+
 import { AppErrorCode } from '../errors/app-error-codes';
 
 export class PrismaErrorHandler {

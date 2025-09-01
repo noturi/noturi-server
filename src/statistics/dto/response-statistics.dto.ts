@@ -35,7 +35,7 @@ class CategoryStatsItemDto {
   worstCount: number;
   @ApiPropertyOptional({
     description: '최근 메모',
-    example: { id: 'uuid', title: '최근 메모 제목', createdAt: '2024-07-29T00:00:00.000Z' }
+    example: { id: 'uuid', title: '최근 메모 제목', createdAt: '2024-07-29T00:00:00.000Z' },
   })
   recentMemo?: {
     id: string;

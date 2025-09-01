@@ -20,7 +20,9 @@ export function convertMemoRating<T extends { rating: Decimal }>(memo: T): Omit<
 /**
  * 메모 배열의 모든 rating을 number로 변환
  */
-export function convertMemoRatings<T extends { rating: Decimal }>(memos: T[]): (Omit<T, 'rating'> & { rating: number })[] {
+export function convertMemoRatings<T extends { rating: Decimal }>(
+  memos: T[],
+): (Omit<T, 'rating'> & { rating: number })[] {
   return memos.map(convertMemoRating);
 }
 
