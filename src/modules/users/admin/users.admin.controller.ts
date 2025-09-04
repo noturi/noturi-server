@@ -8,7 +8,7 @@ import { RequirePermissions } from '../../../common/decorators/permissions.decor
 import { Permission } from '../../../common/enums/permissions.enum';
 import { ErrorResponseDto } from '../../../common/dto/error-response.dto';
 
-@ApiTags('어드민 - 사용자 관리')
+@ApiTags('admin - 사용자 관리')
 @Controller('admin/users')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 @ApiBearerAuth()

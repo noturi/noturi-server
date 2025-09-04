@@ -4,7 +4,7 @@ import { ClientAuthService } from './auth.client.service';
 import { GoogleNativeLoginDto, AppleLoginDto } from './dto/client-auth.dto';
 import { ErrorResponseDto } from '../../../common/dto/error-response.dto';
 
-@ApiTags('클라이언트 인증')
+@ApiTags('client - 인증')
 @Controller('client/auth')
 export class AuthClientController {
   constructor(private readonly clientAuthService: ClientAuthService) {}
@@ -28,7 +28,7 @@ export class AuthClientController {
   }
 }
 
-@ApiTags('인증')
+@ApiTags('client - 소셜인증')
 @Controller('auth')
 export class AuthController {
   constructor(private readonly clientAuthService: ClientAuthService) {}

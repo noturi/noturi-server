@@ -14,7 +14,7 @@ import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 import { AuthenticatedRequest } from '../../../common/types/auth.types';
 import { ErrorResponseDto } from '../../../common/dto/error-response.dto';
 
-@ApiTags('통계')
+@ApiTags('client - 통계')
 @Controller('client/statistics')
 @UseGuards(JwtAuthGuard)
 @ApiBearerAuth()

@@ -8,7 +8,7 @@ import { AdminManagementService } from './admin-management.service';
 import { CreateAdminDto } from './dto/admin-management.dto';
 import { ErrorResponseDto } from '../../../common/dto/error-response.dto';
 
-@ApiTags('슈퍼어드민 - 관리자 관리')
+@ApiTags('admin - 관리자 관리')
 @Controller('admin/users')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 @ApiBearerAuth()
@@ -41,4 +41,3 @@ export class AdminManagementController {
     return this.adminManagementService.deleteAdmin(id);
   }
 }
-

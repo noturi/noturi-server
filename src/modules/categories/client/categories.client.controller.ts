@@ -6,7 +6,7 @@ import { CategoriesService } from '../categories.service';
 import { CategoryDto, CreateCategoryDto, UpdateCategoryDto } from './dto';
 import { AuthenticatedRequest } from '../../../common/types/auth.types';
 
-@ApiTags('Categories')
+@ApiTags('client - 카테고리')
 @ApiBearerAuth()
 @Controller('client/categories')
 @UseGuards(JwtAuthGuard)

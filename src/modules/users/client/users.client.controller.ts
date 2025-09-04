@@ -6,7 +6,7 @@ import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 import { AuthenticatedRequest } from '../../../common/types/auth.types';
 import { ErrorResponseDto } from '../../../common/dto/error-response.dto';
 
-@ApiTags('사용자')
+@ApiTags('client - 사용자')
 @Controller('client/users')
 @UseGuards(JwtAuthGuard)
 @ApiBearerAuth()

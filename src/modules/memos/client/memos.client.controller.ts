@@ -19,7 +19,7 @@ import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 import { AuthenticatedRequest } from '../../../common/types/auth.types';
 import { ErrorResponseDto } from '../../../common/dto/error-response.dto';
 
-@ApiTags('메모')
+@ApiTags('client - 메모')
 @Controller('client/memos')
 @UseGuards(JwtAuthGuard)
 @ApiBearerAuth()

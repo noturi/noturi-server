@@ -4,7 +4,7 @@ import { AdminAuthService } from './auth.admin.service';
 import { AdminLoginDto, AdminRegisterDto } from './dto';
 import { ErrorResponseDto } from '../../../common/dto/error-response.dto';
 
-@ApiTags('어드민 인증')
+@ApiTags('admin - 인증')
 @Controller('admin/auth')
 export class AuthAdminController {
   constructor(private readonly adminAuthService: AdminAuthService) {}
@@ -26,4 +26,3 @@ export class AuthAdminController {
     return this.adminAuthService.loginAdmin(adminLoginDto);
   }
 }
-
