@@ -1,0 +1,111 @@
+// src/categories/categories.service.ts
+import { HttpException, HttpStatus, Injectable, NotFoundException } from '@nestjs/common';
+import { PrismaService } from 'prisma/prisma.service';
+import { CreateCategoryDto, UpdateCategoryDto } from './client/dto';
+import { PrismaErrorHandler } from '../../common/exceptions/prisma-error.handler';
+
+@Injectable()
+export class CategoriesService {
+  constructor(private prisma: PrismaService) {}
+
+  async findAll(userId: string) {
+    const categories = await this.prisma.category.findMany({
+      where: { userId },
+      include: {
+        _count: {
+          select: { memos: true },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return categories.map(({ _count, ...category }) => ({
+      ...category,
+      count: _count,
+    }));
+  }
+
+  async findOne(userId: string, id: string) {
+    const category = await this.prisma.category.findFirst({
+      where: { id, userId },
+      include: {
+        _count: {
+          select: { memos: true },
+        },
+      },
+    });
+
+    if (!category) {
+      throw new NotFoundException('카테고리를 찾을 수 없습니다');
+    }
+
+    const { _count, ...categoryData } = category;
+    return {
+      ...categoryData,
+      count: _count,
+    };
+  }
+
+  async create(userId: string, createCategoryDto: CreateCategoryDto) {
+    try {
+      return await this.prisma.category.create({
+        data: {
+          ...createCategoryDto,
+          userId,
+        },
+      });
+    } catch (error) {
+      PrismaErrorHandler.handle(error);
+    }
+  }
+
+  async update(userId: string, id: string, updateCategoryDto: UpdateCategoryDto) {
+    const category = await this.prisma.category.findFirst({
+      where: { id, userId },
+    });
+
+    if (!category) {
+      throw new NotFoundException('카테고리를 찾을 수 없습니다.');
+    }
+
+    try {
+      return await this.prisma.category.update({
+        where: { id },
+        data: updateCategoryDto,
+      });
+    } catch (error) {
+      PrismaErrorHandler.handle(error);
+    }
+  }
+
+  async remove(userId: string, id: string) {
+    const category = await this.prisma.category.findFirst({
+      where: { id, userId },
+      include: {
+        _count: {
+          select: { memos: true },
+        },
+      },
+    });
+
+    if (!category) {
+      throw new NotFoundException('카테고리를 찾을 수 없습니다');
+    }
+
+    if (category._count.memos > 0) {
+      throw new HttpException(
+        {
+          statusCode: HttpStatus.CONFLICT,
+          code: 4092, // AppErrorCode.CATEGORY_HAS_MEMOS
+          message: '메모가 있는 카테고리는 삭제할 수 없습니다',
+          details: { memoCount: category._count.memos },
+        },
+        HttpStatus.CONFLICT,
+      );
+    }
+
+    return this.prisma.category.delete({
+      where: { id },
+    });
+  }
+}
