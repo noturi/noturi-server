@@ -15,15 +15,28 @@ enum AuthProvider {
   APPLE
 }
 
+enum UserRole {
+  USER
+  ADMIN
+  SUPER_ADMIN
+}
+
 model User {
   id            String         @id @default(uuid())
   nickname      String         @unique
   email         String         @unique
   name          String?        // 실제 이름 (OAuth에서 가져옴)
-  provider      AuthProvider
-  providerId    String         @unique
+  
+  // OAuth 인증 (nullable - 어드민은 로컬 인증 가능)
+  provider      AuthProvider?
+  providerId    String?        @unique
   avatarUrl     String?
+  
+  // 로컬 인증 (어드민용)
+  password      String?        // bcrypt 해시
+  
   isStatsPublic Boolean        @default(false)
+  role          UserRole       @default(USER)
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
 
@@ -32,6 +45,7 @@ model User {
   refreshTokens RefreshToken[]
 
   @@index([provider, providerId])
+  @@index([email])
   @@map("users")
 }
 
@@ -114,4 +128,17 @@ model RefreshToken {
 
   @@index([userId])
   @@map("refresh_tokens")
+}
+
+model DefaultCategory {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  color       String
+  description String?
+  sortOrder   Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("default_categories")
 }

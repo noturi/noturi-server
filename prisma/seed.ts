@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import { seedDefaultCategories } from './default-categories-seed';
 
 const prisma = new PrismaClient();
 
@@ -8,6 +9,9 @@ async function main() {
   await prisma.memo.deleteMany();
   await prisma.category.deleteMany();
   await prisma.user.deleteMany();
+
+  // 기본 카테고리 시드 데이터 생성
+  await seedDefaultCategories();
 
   // Create users
   const user1 = await prisma.user.create({
