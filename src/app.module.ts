@@ -2,13 +2,13 @@ import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { AuthModule } from './auth/auth.module';
-import { CategoriesModule } from './categories/categories.module';
+import { CategoriesModule } from './modules/categories/categories.module';
+import { AuthModule } from './modules/auth/auth.module';
+import { MemosModule } from './modules/memos/memos.module';
+import { StatisticsModule } from './modules/statistics/statistics.module';
+import { UsersModule } from './modules/users/users.module';
 import { LoggerMiddleware } from './common/middlewares/logger.middleware';
-import { MemosModule } from './memos/memos.module';
 import { PrismaModule } from '../prisma/prisma.module';
-import { StatisticsModule } from './statistics/statistics.module';
-import { UsersModule } from './users/users.module';
 
 @Module({
   imports: [
@@ -16,11 +16,11 @@ import { UsersModule } from './users/users.module';
       isGlobal: true,
     }),
     PrismaModule,
-    CategoriesModule,
     AuthModule,
-    UsersModule,
+    CategoriesModule,
     MemosModule,
     StatisticsModule,
+    UsersModule,
   ],
   controllers: [AppController],
   providers: [AppService],
