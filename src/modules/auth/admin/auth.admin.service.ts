@@ -67,7 +67,7 @@ export class AdminAuthService {
       where: {
         email: data.email,
         password: { not: null }, // 패스워드가 있는 계정만
-        role: 'ADMIN',
+        role: { in: ['ADMIN', 'SUPER_ADMIN'] },
       },
       select: {
         id: true,
