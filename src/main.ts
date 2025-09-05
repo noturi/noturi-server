@@ -18,17 +18,18 @@ async function bootstrap() {
     }),
   );
 
-  // Swagger 설정 (개발 환경에서만 활성화)
-  if (process.env.NODE_ENV !== 'production') {
-    const config = new DocumentBuilder()
-      .setTitle('Noturi API')
-      .setDescription('The Noturi API description')
-      .setVersion('1.0')
-      .addBearerAuth()
-      .build();
-    const document = SwaggerModule.createDocument(app, config);
-    SwaggerModule.setup('api-docs', app, document);
-  }
+  // 기본 루트 라우트 추가
+  app.setGlobalPrefix('api', { exclude: ['/'] });
+
+  // Swagger 설정
+  const config = new DocumentBuilder()
+    .setTitle('Noturi API')
+    .setDescription('The Noturi API description')
+    .setVersion('1.0')
+    .addBearerAuth()
+    .build();
+  const document = SwaggerModule.createDocument(app, config);
+  SwaggerModule.setup('api-docs', app, document);
   app.enableCors(); // CORS 활성화
   await app.listen(process.env.PORT || 3000);
 }

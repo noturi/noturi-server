@@ -1,12 +1,11 @@
 import { Controller, Get } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
+import { ApiTags } from '@nestjs/swagger';
 
+@ApiTags('Root')
 @Controller()
 export class AppController {
-  constructor(private readonly prisma: PrismaService) {}
-
-  @Get('users')
-  async getAllUsers() {
-    return this.prisma.user.findMany();
+  @Get()
+  healthCheck() {
+    return { status: 'ok', timestamp: new Date().toISOString() };
   }
 }
