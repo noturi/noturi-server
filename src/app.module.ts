@@ -7,6 +7,7 @@ import { AuthModule } from './modules/auth/auth.module';
 import { MemosModule } from './modules/memos/memos.module';
 import { StatisticsModule } from './modules/statistics/statistics.module';
 import { UsersModule } from './modules/users/users.module';
+import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { LoggerMiddleware } from './common/middlewares/logger.middleware';
 import { PrismaModule } from '../prisma/prisma.module';
 
@@ -21,6 +22,7 @@ import { PrismaModule } from '../prisma/prisma.module';
     MemosModule,
     StatisticsModule,
     UsersModule,
+    DashboardModule,
   ],
   controllers: [AppController],
   providers: [AppService],

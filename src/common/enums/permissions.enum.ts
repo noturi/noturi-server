@@ -13,6 +13,7 @@ export enum Permission {
   // 시스템 관리
   MANAGE_SYSTEM = 'manage:system',
   VIEW_ANALYTICS = 'view:analytics',
+  READ_DASHBOARD = 'read:dashboard',
 
   // 어드민 관리 (슈퍼어드민만)
   CREATE_ADMIN = 'create:admin',
@@ -37,6 +38,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     Permission.DELETE_DEFAULT_CATEGORIES,
     Permission.READ_USERS,
     Permission.VIEW_ANALYTICS,
+    Permission.READ_DASHBOARD,
   ],
 
   [UserRole.SUPER_ADMIN]: [
@@ -49,6 +51,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     Permission.DELETE_USERS,
     Permission.MANAGE_SYSTEM,
     Permission.VIEW_ANALYTICS,
+    Permission.READ_DASHBOARD,
     Permission.CREATE_ADMIN,
     Permission.DELETE_ADMIN,
     Permission.MANAGE_PERMISSIONS,
