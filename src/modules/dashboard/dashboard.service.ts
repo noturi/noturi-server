@@ -7,10 +7,13 @@ export class DashboardService {
 
   async getStatistics() {
     const [totalUsers, totalCategories, activeUsers] = await Promise.all([
-      this.prisma.user.count(),
+      this.prisma.user.count({
+        where: { role: 'USER' },
+      }),
       this.prisma.category.count(),
       this.prisma.user.count({
         where: {
+          role: 'USER',
           updatedAt: {
             gte: new Date(new Date().setMonth(new Date().getMonth() - 1)),
           },
@@ -20,6 +23,7 @@ export class DashboardService {
 
     const lastMonthUsers = await this.prisma.user.count({
       where: {
+        role: 'USER',
         createdAt: {
           gte: new Date(new Date().setMonth(new Date().getMonth() - 2)),
           lt: new Date(new Date().setMonth(new Date().getMonth() - 1)),
@@ -41,6 +45,7 @@ export class DashboardService {
 
   async getRecentActivities() {
     const recentUsers = await this.prisma.user.findMany({
+      where: { role: 'USER' },
       take: 10,
       orderBy: {
         createdAt: 'desc',
