@@ -26,6 +26,18 @@ async function main() {
     },
   });
 
+  const user2 = await prisma.user.create({
+    data: {
+      nickname: 'bob',
+      email: 'bob@example.com',
+      name: 'Bob Smith',
+      providers: ['APPLE'],
+      providerId: 'apple-bob-456',
+      avatarUrl: null,
+      isStatsPublic: false,
+    },
+  });
+
   // Create default categories for user1 (한국어)
   const categories1 = await Promise.all([
     prisma.category.create({
