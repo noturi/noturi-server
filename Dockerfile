@@ -16,4 +16,4 @@ COPY package.json pnpm-lock.yaml ./
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/prisma ./prisma
 EXPOSE 3000
-CMD ["sh", "-c", "pnpm run db:deploy && pnpm run start:prod"]
+CMD ["sh", "-c", "npx prisma migrate resolve --rolled-back 20250906120000_convert_provider_to_array && pnpm run db:deploy && pnpm run start:prod"]
