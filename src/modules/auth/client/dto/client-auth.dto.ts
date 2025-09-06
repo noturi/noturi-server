@@ -30,11 +30,12 @@ export class AppleLoginDto {
 
   @ApiProperty({
     description: 'Apple ID (프론트엔드에서 전송)',
-    example: '000123.abc456def789.1234'
+    example: '000123.abc456def789.1234',
+    required: false
   })
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
-  appleId: string;
+  appleId?: string;
 
   @ApiProperty({
     description: '사용자 이메일',

@@ -107,7 +107,7 @@ export class ClientAuthService {
       const { sub: tokenAppleId, email: tokenEmail } = decodedToken;
       
       // 우선순위: DTO에서 전송된 값 > 토큰에서 추출된 값
-      const appleId = appleLoginDto.appleId || tokenAppleId;
+      const appleId = appleLoginDto.appleId || appleLoginDto.user || tokenAppleId;
       const userEmail = appleLoginDto.email || tokenEmail;
       const userName = appleLoginDto.name || appleLoginDto.fullName;
       
