@@ -28,7 +28,7 @@ model User {
   name          String?        // 실제 이름 (OAuth에서 가져옴)
   
   // OAuth 인증 (nullable - 어드민은 로컬 인증 가능)
-  provider      AuthProvider?
+  providers     AuthProvider[]
   providerId    String?        @unique
   avatarUrl     String?
   
@@ -44,7 +44,7 @@ model User {
   memos         Memo[]
   refreshTokens RefreshToken[]
 
-  @@index([provider, providerId])
+  @@index([providerId])
   @@index([email])
   @@map("users")
 }
