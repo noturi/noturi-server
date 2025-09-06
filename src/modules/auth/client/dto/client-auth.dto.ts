@@ -29,7 +29,15 @@ export class AppleLoginDto {
   user: string;
 
   @ApiProperty({
-    description: '사용자 이메일 (첫 로그인시에만)',
+    description: 'Apple ID (프론트엔드에서 전송)',
+    example: '000123.abc456def789.1234'
+  })
+  @IsString()
+  @IsNotEmpty()
+  appleId: string;
+
+  @ApiProperty({
+    description: '사용자 이메일',
     example: 'user@example.com',
     required: false
   })
@@ -38,7 +46,16 @@ export class AppleLoginDto {
   email?: string;
 
   @ApiProperty({
-    description: '사용자 이름 (첫 로그인시에만)',
+    description: '사용자 이름',
+    example: 'John Doe',
+    required: false
+  })
+  @IsOptional()
+  @IsString()
+  name?: string;
+
+  @ApiProperty({
+    description: '사용자 이름 (레거시)',
     example: 'John Doe',
     required: false
   })

@@ -104,10 +104,12 @@ export class ClientAuthService {
         throw new UnauthorizedException('유효하지 않은 Apple 토큰입니다.');
       }
 
-      const { sub: appleId, email } = decodedToken;
+      const { sub: tokenAppleId, email: tokenEmail } = decodedToken;
       
-      // 이메일이 토큰에 없으면 DTO에서 가져오기
-      const userEmail = email || appleLoginDto.email;
+      // 우선순위: DTO에서 전송된 값 > 토큰에서 추출된 값
+      const appleId = appleLoginDto.appleId || tokenAppleId;
+      const userEmail = appleLoginDto.email || tokenEmail;
+      const userName = appleLoginDto.name || appleLoginDto.fullName;
       
       if (!userEmail && !appleId) {
         throw new UnauthorizedException('Apple 사용자 정보를 가져올 수 없습니다.');
@@ -131,7 +133,7 @@ export class ClientAuthService {
           data: {
             email: userEmail,
             nickname: defaultNickname,
-            name: appleLoginDto.fullName || defaultNickname,
+            name: userName || defaultNickname,
             provider: 'APPLE',
             providerId: appleId,
           },
