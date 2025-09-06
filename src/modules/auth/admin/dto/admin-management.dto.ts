@@ -1,6 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEmail, IsString, MinLength, MaxLength, IsEnum } from 'class-validator';
-import { UserRole } from '../../../../common/enums/permissions.enum';
+import { IsEmail, IsEnum, IsString, MaxLength, MinLength } from 'class-validator';
 
 export class CreateAdminDto {
   @ApiProperty({ example: 'admin2@noturi.com', description: '어드민 이메일' })

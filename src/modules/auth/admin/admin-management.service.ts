@@ -38,7 +38,7 @@ export class AdminManagementService {
         password: hashedPassword,
         role: data.role,
 
-        provider: null,
+        providers: [],
         providerId: null,
       },
       select: {

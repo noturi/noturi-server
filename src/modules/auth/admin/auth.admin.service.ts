@@ -41,8 +41,8 @@ export class AdminAuthService {
         nickname: data.nickname,
         password: hashedPassword,
         role: 'ADMIN',
-        // OAuth 필드는 null로 남겨둠
-        provider: null,
+
+        providers: [],
         providerId: null,
       },
       select: {
@@ -114,4 +114,3 @@ export class AdminAuthService {
     };
   }
 }
-

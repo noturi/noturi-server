@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
-import { QueryStatisticsDto, StatisticsPeriod, TrendsParamsDto, OverallStatsParamsDto } from './client/dto';
+import { QueryStatisticsDto, StatisticsPeriod, TrendsParamsDto } from './client/dto';
 
 @Injectable()
 export class StatisticsService {
@@ -110,8 +110,6 @@ export class StatisticsService {
   }
 
   private async getPeriodStatistics(userId: string, startDate: Date, endDate: Date, period: StatisticsPeriod) {
-    const dateFormat = this.getDateFormat(period);
-
     const memos = await this.prisma.memo.findMany({
       where: {
         userId,
@@ -277,10 +275,8 @@ export class StatisticsService {
   }
 
   // 전체 통계 개요 API
-  async getOverallStats(userId: string, params: OverallStatsParamsDto) {
+  async getOverallStats(userId: string) {
     const now = new Date();
-    const year = params.year || now.getFullYear();
-    const month = params.month;
 
     // 전체 메모 개수
     const totalMemos = await this.prisma.memo.count({

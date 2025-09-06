@@ -1,9 +1,9 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { PrismaService } from '../../../../prisma/prisma.service';
-import { GoogleNativeLoginDto, AppleLoginDto } from './dto/client-auth.dto';
-import { getEnvConfig } from '../../../common/config/env.config';
 import * as jwt from 'jsonwebtoken';
+import { PrismaService } from '../../../../prisma/prisma.service';
+import { getEnvConfig } from '../../../common/config/env.config';
+import { AppleLoginDto, GoogleNativeLoginDto } from './dto/client-auth.dto';
 
 @Injectable()
 export class ClientAuthService {
@@ -16,7 +16,7 @@ export class ClientAuthService {
     try {
       // 네이티브 앱에서 이미 검증된 토큰을 받으므로 디코드만 진행
       const decodedToken = jwt.decode(googleLoginDto.idToken) as any;
-      
+
       if (!decodedToken) {
         throw new UnauthorizedException('유효하지 않은 구글 토큰입니다.');
       }
@@ -33,25 +33,37 @@ export class ClientAuthService {
       });
 
       if (!user) {
-        // 닉네임은 이메일의 @ 앞부분을 기본값으로 사용
-        const defaultNickname = email.split('@')[0];
-        
+        // 닉네임 중복 처리
+        const baseNickname = email.split('@')[0];
+        let nickname = baseNickname;
+        let counter = 1;
+
+        // 닉네임이 중복되지 않을 때까지 반복
+        while (await this.prismaService.user.findUnique({ where: { nickname } })) {
+          nickname = `${baseNickname}${counter}`;
+          counter++;
+        }
+
         user = await this.prismaService.user.create({
           data: {
             email,
-            nickname: defaultNickname,
-            name: name || defaultNickname,
-            provider: 'GOOGLE',
+            nickname: nickname,
+            name: name || nickname,
+            providers: ['GOOGLE'],
             providerId: googleId,
             avatarUrl: picture,
           },
         });
-      } else if (user.provider !== 'GOOGLE' || user.providerId !== googleId) {
+      } else if (!user.providers.includes('GOOGLE') || user.providerId !== googleId) {
         // 기존 사용자에 Google 정보 추가
+        const updatedProviders = user.providers.includes('GOOGLE')
+          ? user.providers
+          : [...user.providers, 'GOOGLE' as const];
+
         user = await this.prismaService.user.update({
           where: { id: user.id },
-          data: { 
-            provider: 'GOOGLE',
+          data: {
+            providers: updatedProviders,
             providerId: googleId,
             avatarUrl: picture || user.avatarUrl,
           },
@@ -99,18 +111,18 @@ export class ClientAuthService {
     try {
       // Apple ID 토큰 디코드 (검증 없이)
       const decodedToken = jwt.decode(appleLoginDto.identityToken) as any;
-      
+
       if (!decodedToken) {
         throw new UnauthorizedException('유효하지 않은 Apple 토큰입니다.');
       }
 
       const { sub: tokenAppleId, email: tokenEmail } = decodedToken;
-      
+
       // 우선순위: DTO에서 전송된 값 > 토큰에서 추출된 값
       const appleId = appleLoginDto.appleId || appleLoginDto.user || tokenAppleId;
       const userEmail = appleLoginDto.email || tokenEmail;
       const userName = appleLoginDto.name || appleLoginDto.fullName;
-      
+
       if (!userEmail && !appleId) {
         throw new UnauthorizedException('Apple 사용자 정보를 가져올 수 없습니다.');
       }
@@ -118,32 +130,39 @@ export class ClientAuthService {
       // Apple ID로 사용자 찾기
       let user = await this.prismaService.user.findFirst({
         where: {
-          OR: [
-            { providerId: appleId },
-            { email: userEmail }
-          ]
-        }
+          OR: [{ providerId: appleId }, { email: userEmail }],
+        },
       });
 
       if (!user && userEmail) {
-        // 새 사용자 생성
-        const defaultNickname = userEmail.split('@')[0];
-        
+        // 새 사용자 생성 - 닉네임 중복 처리
+        const baseNickname = userEmail.split('@')[0];
+        let nickname = baseNickname;
+        let counter = 1;
+
+        // 닉네임이 중복되지 않을 때까지 반복
+        while (await this.prismaService.user.findUnique({ where: { nickname } })) {
+          nickname = `${baseNickname}${counter}`;
+          counter++;
+        }
+
         user = await this.prismaService.user.create({
           data: {
             email: userEmail,
-            nickname: defaultNickname,
-            name: userName || defaultNickname,
-            provider: 'APPLE',
+            nickname: nickname,
+            name: userName || nickname,
+            providers: ['APPLE'],
             providerId: appleId,
           },
         });
-      } else if (user && (!user.provider || user.provider !== 'APPLE')) {
+      } else if (user && !user.providers.includes('APPLE')) {
         // 기존 사용자에 Apple 정보 추가
+        const updatedProviders = [...user.providers, 'APPLE' as const];
+
         user = await this.prismaService.user.update({
           where: { id: user.id },
-          data: { 
-            provider: 'APPLE',
+          data: {
+            providers: updatedProviders,
             providerId: appleId,
           },
         });

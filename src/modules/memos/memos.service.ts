@@ -1,7 +1,6 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
-import { CreateMemoDto, UpdateMemoDto, QueryMemoDto } from './client/dto';
-import { AuthenticatedUser } from '../../common/types/auth.types';
+import { CreateMemoDto, QueryMemoDto, UpdateMemoDto } from './client/dto';
 
 @Injectable()
 export class MemosService {
@@ -149,5 +148,4 @@ export class MemosService {
       where: { id: memo.id },
     });
   }
-
 }

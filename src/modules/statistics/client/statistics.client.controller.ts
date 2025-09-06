@@ -1,18 +1,17 @@
-import { Controller, Get, Query, UseGuards, Request } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import { Controller, Get, Query, Request, UseGuards } from '@nestjs/common';
+import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ErrorResponseDto } from '../../../common/dto/error-response.dto';
+import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
+import { AuthenticatedRequest } from '../../../common/types/auth.types';
 import { StatisticsService } from '../statistics.service';
 import {
+  CategoryStatsResponse,
+  OverallStats,
   QueryStatisticsDto,
   ResponseStatisticsDto,
   TrendsParamsDto,
   TrendsResponseDto,
-  OverallStatsParamsDto,
-  OverallStats,
-  CategoryStatsResponse,
 } from './dto';
-import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
-import { AuthenticatedRequest } from '../../../common/types/auth.types';
-import { ErrorResponseDto } from '../../../common/dto/error-response.dto';
 
 @ApiTags('client - 통계')
 @Controller('client/statistics')
@@ -33,8 +32,8 @@ export class StatisticsClientController {
   @ApiOperation({ summary: '전체 통계 조회' })
   @ApiResponse({ status: 200, description: '조회 성공', type: OverallStats })
   @ApiResponse({ status: 401, description: '인증 필요', type: ErrorResponseDto })
-  async getOverallStats(@Request() req: AuthenticatedRequest, @Query() params: OverallStatsParamsDto) {
-    return this.statisticsService.getOverallStats(req.user.id, params);
+  async getOverallStats(@Request() req: AuthenticatedRequest) {
+    return this.statisticsService.getOverallStats(req.user.id);
   }
 
   @Get('categories')
