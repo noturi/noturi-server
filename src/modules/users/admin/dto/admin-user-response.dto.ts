@@ -17,8 +17,8 @@ export class AdminUserResponseDto {
   @ApiProperty({ example: 'https://avatar.url/john.jpg', description: '아바타 URL', required: false })
   avatarUrl?: string;
 
-  @ApiProperty({ example: 'GOOGLE', description: 'OAuth 제공자', required: false })
-  provider?: string;
+  @ApiProperty({ example: ['GOOGLE', 'APPLE'], description: 'OAuth 제공자 목록', required: false })
+  providers?: string[];
 
   @ApiProperty({ example: false, description: '통계 공개 여부' })
   isStatsPublic: boolean;
