@@ -183,10 +183,11 @@ export class ClientAuthService {
         },
       };
     } catch (error) {
+      console.error('Apple 로그인 에러:', error);
       if (error instanceof UnauthorizedException) {
         throw error;
       }
-      throw new UnauthorizedException('Apple 로그인에 실패했습니다.');
+      throw new UnauthorizedException(`Apple 로그인에 실패했습니다: ${error.message}`);
     }
   }
 }
