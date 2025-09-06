@@ -16,4 +16,4 @@ COPY package.json pnpm-lock.yaml ./
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/prisma ./prisma
 EXPOSE 3000
-CMD ["pnpm", "run", "start:prod"]
+CMD ["sh", "-c", "pnpm run db:deploy && pnpm run start:prod"]
