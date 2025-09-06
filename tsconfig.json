@@ -17,6 +17,5 @@
     "strictBindCallApply": true,
     "forceConsistentCasingInFileNames": false,
     "noFallthroughCasesInSwitch": false
-  },
-  "exclude": ["prisma/seed.ts"]
+  }
 }
