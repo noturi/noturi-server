@@ -1,6 +1,38 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsString, IsNotEmpty, IsOptional, IsEmail } from 'class-validator';
 
+export class LoginResponseDto {
+  @ApiProperty({
+    description: '사용자 정보',
+    example: {
+      id: 'user123',
+      email: 'user@example.com',
+      name: 'John Doe',
+      nickname: 'john',
+      avatarUrl: 'https://example.com/avatar.jpg'
+    }
+  })
+  user: {
+    id: string;
+    email: string;
+    name: string;
+    nickname: string;
+    avatarUrl?: string;
+  };
+
+  @ApiProperty({
+    description: '인증 토큰',
+    example: {
+      accessToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+      refreshToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
+    }
+  })
+  tokens: {
+    accessToken: string;
+    refreshToken: string;
+  };
+}
+
 export class GoogleNativeLoginDto {
   @ApiProperty({
     description: '구글 ID 토큰',
