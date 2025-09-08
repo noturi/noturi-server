@@ -110,8 +110,7 @@ export class ClientAuthService {
   async appleLogin(appleLoginDto: AppleLoginDto) {
     try {
       // Apple ID 토큰 디코드 (검증 없이)
-      const decodedToken = jwt.decode(appleLoginDto.identityToken) as any;
-
+      const decodedToken = jwt.decode(appleLoginDto.idToken) as any;
       if (!decodedToken) {
         throw new UnauthorizedException('유효하지 않은 Apple 토큰입니다.');
       }

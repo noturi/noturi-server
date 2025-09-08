@@ -18,7 +18,7 @@ export class AppleLoginDto {
   })
   @IsString()
   @IsNotEmpty()
-  identityToken: string;
+  idToken: string;
 
   @ApiProperty({
     description: '사용자 식별자',
