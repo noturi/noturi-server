@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Delete, Body, Param, UseGuards } from '@nestjs/common';
+import { Controller, Post, Get, Delete, Body, Param, UseGuards, Query } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../../common/guards/permissions.guard';
@@ -6,6 +6,8 @@ import { RequirePermissions } from '../../../common/decorators/permissions.decor
 import { Permission } from '../../../common/enums/permissions.enum';
 import { AdminManagementService } from './admin-management.service';
 import { CreateAdminDto } from './dto/admin-management.dto';
+import { UserListQueryDto, UserListItemDto } from './dto/user-list.dto';
+import { PaginatedResponseDto } from '../../../common/dto/pagination.dto';
 import { ErrorResponseDto } from '../../../common/dto/error-response.dto';
 
 @ApiTags('admin - 관리자 관리')
@@ -22,6 +24,19 @@ export class AdminManagementController {
   @ApiResponse({ status: 403, description: '권한 없음', type: ErrorResponseDto })
   async createAdmin(@Body() createAdminDto: CreateAdminDto) {
     return this.adminManagementService.createAdmin(createAdminDto);
+  }
+
+  @Get()
+  @RequirePermissions(Permission.READ_USERS)
+  @ApiOperation({ summary: '유저 목록 조회 (페이지네이션 및 검색 지원)' })
+  @ApiResponse({ 
+    status: 200, 
+    description: '조회 성공',
+    type: PaginatedResponseDto<UserListItemDto>
+  })
+  @ApiResponse({ status: 403, description: '권한 없음', type: ErrorResponseDto })
+  async getUsers(@Query() query: UserListQueryDto) {
+    return this.adminManagementService.getUsers(query);
   }
 
   @Get('admins')

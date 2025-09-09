@@ -2,6 +2,8 @@ import { Injectable, ConflictException, ForbiddenException, NotFoundException } 
 import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '../../../../prisma/prisma.service';
 import { CreateAdminDto } from './dto/admin-management.dto';
+import { UserListQueryDto } from './dto/user-list.dto';
+import { PaginationMetaDto } from '../../../common/dto/pagination.dto';
 
 @Injectable()
 export class AdminManagementService {
@@ -54,6 +56,69 @@ export class AdminManagementService {
     return {
       message: `${data.role} 계정이 생성되었습니다`,
       admin,
+    };
+  }
+
+  async getUsers(query: UserListQueryDto) {
+    const { page, limit, role, search, sortBy, sortOrder } = query;
+    const skip = (page - 1) * limit;
+
+    // 검색 조건 구성
+    const where: any = {};
+    
+    if (role) {
+      where.role = role;
+    }
+
+    if (search) {
+      where.OR = [
+        { email: { contains: search, mode: 'insensitive' } },
+        { nickname: { contains: search, mode: 'insensitive' } },
+        { name: { contains: search, mode: 'insensitive' } },
+      ];
+    }
+
+    // 전체 항목 수 조회
+    const totalItems = await this.prisma.user.count({ where });
+
+    // 데이터 조회
+    const users = await this.prisma.user.findMany({
+      where,
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        nickname: true,
+        role: true,
+        avatarUrl: true,
+        isStatsPublic: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+      orderBy: {
+        [sortBy as string]: sortOrder,
+      },
+      skip,
+      take: limit,
+    });
+
+    // 페이지네이션 메타 정보 계산
+    const totalPages = Math.ceil(totalItems / limit);
+    const hasNext = page < totalPages;
+    const hasPrev = page > 1;
+
+    const meta: PaginationMetaDto = {
+      page,
+      limit,
+      totalItems,
+      totalPages,
+      hasNext,
+      hasPrev,
+    };
+
+    return {
+      data: users,
+      meta,
     };
   }
 
