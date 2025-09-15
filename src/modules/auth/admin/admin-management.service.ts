@@ -60,21 +60,21 @@ export class AdminManagementService {
   }
 
   async getUsers(query: UserListQueryDto) {
-    const { page, limit, role, search, sortBy, sortOrder } = query;
+    const { page, limit, role, keyword, sortBy, sortOrder } = query;
     const skip = (page - 1) * limit;
 
     // 검색 조건 구성
     const where: any = {};
-    
+
     if (role) {
       where.role = role;
     }
 
-    if (search) {
+    if (keyword) {
       where.OR = [
-        { email: { contains: search, mode: 'insensitive' } },
-        { nickname: { contains: search, mode: 'insensitive' } },
-        { name: { contains: search, mode: 'insensitive' } },
+        { email: { contains: keyword, mode: 'insensitive' } },
+        { nickname: { contains: keyword, mode: 'insensitive' } },
+        { name: { contains: keyword, mode: 'insensitive' } },
       ];
     }
 

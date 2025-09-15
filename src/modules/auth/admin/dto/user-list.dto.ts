@@ -14,12 +14,12 @@ export class UserListQueryDto extends PaginationQueryDto {
   role?: UserRole;
 
   @ApiProperty({ 
-    description: '검색어 (이메일, 닉네임, 이름)', 
+    description: '검색 키워드 (닉네임, 이메일, 이름)', 
     required: false 
   })
   @IsOptional()
   @IsString()
-  search?: string;
+  keyword?: string;
 
   @ApiProperty({ 
     description: '정렬 필드', 
