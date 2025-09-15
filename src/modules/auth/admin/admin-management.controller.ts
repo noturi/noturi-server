@@ -43,28 +43,51 @@ export class AdminManagementController {
           items: {
             type: 'object',
             properties: {
-              id: { type: 'string', description: '사용자 ID' },
-              email: { type: 'string', description: '이메일' },
-              name: { type: 'string', nullable: true, description: '이름' },
-              nickname: { type: 'string', description: '닉네임' },
-              role: { type: 'string', enum: ['USER', 'ADMIN', 'SUPER_ADMIN'], description: '역할' },
-              avatarUrl: { type: 'string', nullable: true, description: '프로필 이미지 URL' },
-              isStatsPublic: { type: 'boolean', description: '통계 공개 여부' },
-              createdAt: { type: 'string', format: 'date-time', description: '생성일' },
-              updatedAt: { type: 'string', format: 'date-time', description: '수정일' }
+              id: { type: 'string', example: '550e8400-e29b-41d4-a716-446655440000', description: '사용자 ID' },
+              email: { type: 'string', example: 'user@example.com', description: '이메일' },
+              name: { type: 'string', example: 'John Doe', nullable: true, description: '이름' },
+              nickname: { type: 'string', example: 'john_doe', description: '닉네임' },
+              role: { type: 'string', enum: ['USER', 'ADMIN', 'SUPER_ADMIN'], example: 'USER', description: '역할' },
+              avatarUrl: { type: 'string', example: 'https://avatar.url/john.jpg', nullable: true, description: '프로필 이미지 URL' },
+              isStatsPublic: { type: 'boolean', example: true, description: '통계 공개 여부' },
+              createdAt: { type: 'string', format: 'date-time', example: '2024-01-15T10:30:00.000Z', description: '생성일' },
+              updatedAt: { type: 'string', format: 'date-time', example: '2024-01-20T15:45:00.000Z', description: '수정일' }
             }
           }
         },
         meta: {
           type: 'object',
           properties: {
-            page: { type: 'number', description: '현재 페이지' },
-            limit: { type: 'number', description: '페이지당 항목 수' },
-            totalItems: { type: 'number', description: '전체 항목 수' },
-            totalPages: { type: 'number', description: '전체 페이지 수' },
-            hasNext: { type: 'boolean', description: '다음 페이지 존재 여부' },
-            hasPrev: { type: 'boolean', description: '이전 페이지 존재 여부' }
+            page: { type: 'number', example: 1, description: '현재 페이지' },
+            limit: { type: 'number', example: 10, description: '페이지당 항목 수' },
+            totalItems: { type: 'number', example: 150, description: '전체 항목 수' },
+            totalPages: { type: 'number', example: 15, description: '전체 페이지 수' },
+            hasNext: { type: 'boolean', example: true, description: '다음 페이지 존재 여부' },
+            hasPrev: { type: 'boolean', example: false, description: '이전 페이지 존재 여부' }
           }
+        }
+      },
+      example: {
+        data: [
+          {
+            id: '550e8400-e29b-41d4-a716-446655440000',
+            email: 'user@example.com',
+            name: 'John Doe',
+            nickname: 'john_doe',
+            role: 'USER',
+            avatarUrl: 'https://avatar.url/john.jpg',
+            isStatsPublic: true,
+            createdAt: '2024-01-15T10:30:00.000Z',
+            updatedAt: '2024-01-20T15:45:00.000Z'
+          }
+        ],
+        meta: {
+          page: 1,
+          limit: 10,
+          totalItems: 150,
+          totalPages: 15,
+          hasNext: true,
+          hasPrev: false
         }
       }
     }
