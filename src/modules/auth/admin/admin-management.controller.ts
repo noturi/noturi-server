@@ -28,11 +28,46 @@ export class AdminManagementController {
 
   @Get()
   @RequirePermissions(Permission.READ_USERS)
-  @ApiOperation({ summary: '유저 목록 조회 (페이지네이션 및 검색 지원)' })
+  @ApiOperation({ 
+    summary: '유저 목록 조회 (페이지네이션 및 검색 지원)',
+    description: '모든 유저 목록을 페이지네이션과 함께 조회합니다. 검색, 필터링, 정렬 기능을 지원합니다.'
+  })
   @ApiResponse({ 
     status: 200, 
     description: '조회 성공',
-    type: PaginatedResponseDto<UserListItemDto>
+    schema: {
+      type: 'object',
+      properties: {
+        data: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              id: { type: 'string', description: '사용자 ID' },
+              email: { type: 'string', description: '이메일' },
+              name: { type: 'string', nullable: true, description: '이름' },
+              nickname: { type: 'string', description: '닉네임' },
+              role: { type: 'string', enum: ['USER', 'ADMIN', 'SUPER_ADMIN'], description: '역할' },
+              avatarUrl: { type: 'string', nullable: true, description: '프로필 이미지 URL' },
+              isStatsPublic: { type: 'boolean', description: '통계 공개 여부' },
+              createdAt: { type: 'string', format: 'date-time', description: '생성일' },
+              updatedAt: { type: 'string', format: 'date-time', description: '수정일' }
+            }
+          }
+        },
+        meta: {
+          type: 'object',
+          properties: {
+            page: { type: 'number', description: '현재 페이지' },
+            limit: { type: 'number', description: '페이지당 항목 수' },
+            totalItems: { type: 'number', description: '전체 항목 수' },
+            totalPages: { type: 'number', description: '전체 페이지 수' },
+            hasNext: { type: 'boolean', description: '다음 페이지 존재 여부' },
+            hasPrev: { type: 'boolean', description: '이전 페이지 존재 여부' }
+          }
+        }
+      }
+    }
   })
   @ApiResponse({ status: 403, description: '권한 없음', type: ErrorResponseDto })
   async getUsers(@Query() query: UserListQueryDto) {
