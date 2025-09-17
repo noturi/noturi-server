@@ -22,6 +22,15 @@ export class AdminUserQueryDto {
   email?: string;
 
   @ApiProperty({
+    example: 'john',
+    description: '이름, 닉네임, 이메일로 검색',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  keyword?: string;
+
+  @ApiProperty({
     example: 'USER',
     description: '사용자 역할로 필터링',
     enum: UserRole,
