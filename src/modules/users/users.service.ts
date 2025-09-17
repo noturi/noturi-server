@@ -117,18 +117,30 @@ export class UsersService {
 
   // 어드민용 메서드들
   async getAllUsers(queryDto: AdminUserQueryDto) {
-    const { keyword, role, page = 1, limit = 20 } = queryDto;
+    const { email, role, page = 1, limit = 20, sort = [], createdAt } = queryDto;
 
     const where: any = {
-      ...(keyword && {
-        OR: [
-          { nickname: { contains: keyword, mode: 'insensitive' } },
-          { email: { contains: keyword, mode: 'insensitive' } },
-          { name: { contains: keyword, mode: 'insensitive' } },
-        ],
+      ...(email && {
+        email: { contains: email, mode: 'insensitive' },
       }),
       ...(role && { role }),
+      ...(createdAt && {
+        createdAt: {
+          ...(createdAt.start && { gte: createdAt.start }),
+          ...(createdAt.end && { lte: createdAt.end }),
+        },
+      }),
     };
+
+    // sort 파라미터 처리
+    const orderBy: any = {};
+    if (sort.length > 0) {
+      sort.forEach((sortItem) => {
+        orderBy[sortItem.id] = sortItem.desc ? 'desc' : 'asc';
+      });
+    } else {
+      orderBy.createdAt = 'desc'; // 기본 정렬
+    }
 
     const [users, total] = await Promise.all([
       this.prisma.user.findMany({
@@ -151,7 +163,7 @@ export class UsersService {
             },
           },
         },
-        orderBy: { createdAt: 'desc' },
+        orderBy,
         skip: (page - 1) * limit,
         take: limit,
       }),
