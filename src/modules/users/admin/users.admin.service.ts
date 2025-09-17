@@ -8,13 +8,19 @@ export class UsersAdminService {
   constructor(private readonly prisma: PrismaService) {}
 
   async getAllUsers(queryDto: AdminUserQueryDto) {
-    const { email, role, page = 1, limit = 20, sort = [] } = queryDto;
+    const { email, role, page = 1, limit = 20, sort = [], createdAt } = queryDto;
 
     const where: any = {
       ...(email && {
         email: { contains: email, mode: 'insensitive' },
       }),
       ...(role && { role }),
+      ...(createdAt && {
+        createdAt: {
+          ...(createdAt.start && { gte: createdAt.start }),
+          ...(createdAt.end && { lte: createdAt.end }),
+        },
+      }),
     };
 
     // sort 파라미터 처리

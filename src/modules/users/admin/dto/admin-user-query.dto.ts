@@ -84,4 +84,22 @@ export class AdminUserQueryDto {
   @ValidateNested({ each: true })
   @Type(() => SortDto)
   sort?: SortDto[] = [];
+
+  @ApiProperty({
+    example: '1756738800000,1756825200000',
+    description: '생성일 범위 필터 (시작날짜,종료날짜 타임스탬프)',
+    required: false,
+  })
+  @IsOptional()
+  @Transform(({ value }) => {
+    if (typeof value === 'string' && value.includes(',')) {
+      const [start, end] = value.split(',');
+      return {
+        start: start ? new Date(parseInt(start)) : undefined,
+        end: end ? new Date(parseInt(end)) : undefined,
+      };
+    }
+    return undefined;
+  })
+  createdAt?: { start?: Date; end?: Date };
 }
