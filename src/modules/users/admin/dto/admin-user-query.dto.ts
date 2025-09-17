@@ -1,17 +1,25 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsOptional, IsString, IsInt, Min, IsEnum } from 'class-validator';
-import { Transform } from 'class-transformer';
+import { IsOptional, IsString, IsInt, Min, IsEnum, IsArray, ValidateNested } from 'class-validator';
+import { Transform, Type } from 'class-transformer';
 import { UserRole } from '../../../../common/enums/permissions.enum';
+
+export class SortDto {
+  @IsString()
+  id: string;
+
+  @IsOptional()
+  desc?: boolean;
+}
 
 export class AdminUserQueryDto {
   @ApiProperty({
-    example: 'john',
-    description: '검색 키워드 (닉네임, 이메일, 이름)',
+    example: 'john@example.com',
+    description: '이메일로 검색',
     required: false,
   })
   @IsOptional()
   @IsString()
-  keyword?: string;
+  email?: string;
 
   @ApiProperty({
     example: 'USER',
@@ -46,4 +54,25 @@ export class AdminUserQueryDto {
   @IsInt()
   @Min(1)
   limit?: number = 20;
+
+  @ApiProperty({
+    example: '[{"id":"createdAt","desc":false}]',
+    description: '정렬 조건 배열',
+    required: false,
+  })
+  @IsOptional()
+  @Transform(({ value }) => {
+    if (typeof value === 'string') {
+      try {
+        return JSON.parse(value);
+      } catch {
+        return [];
+      }
+    }
+    return value || [];
+  })
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => SortDto)
+  sort?: SortDto[] = [];
 }
