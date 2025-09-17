@@ -28,26 +28,3 @@ export class AuthClientController {
   }
 }
 
-@ApiTags('client - 소셜인증')
-@Controller('auth')
-export class AuthController {
-  constructor(private readonly clientAuthService: ClientAuthService) {}
-
-  @Post('google/native')
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: '구글 네이티브 로그인 (legacy)' })
-  @ApiResponse({ status: 200, description: '로그인 성공', type: LoginResponseDto })
-  @ApiResponse({ status: 401, description: '인증 실패', type: ErrorResponseDto })
-  async googleNativeLoginLegacy(@Body() googleLoginDto: GoogleNativeLoginDto) {
-    return this.clientAuthService.googleNativeLogin(googleLoginDto);
-  }
-
-  @Post('apple/native')
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: '애플 네이티브 로그인 (legacy)' })
-  @ApiResponse({ status: 200, description: '로그인 성공', type: LoginResponseDto })
-  @ApiResponse({ status: 401, description: '인증 실패', type: ErrorResponseDto })
-  async appleNativeLoginLegacy(@Body() appleLoginDto: AppleLoginDto) {
-    return this.clientAuthService.appleLogin(appleLoginDto);
-  }
-}
