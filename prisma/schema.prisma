@@ -42,6 +42,7 @@ model User {
   categories    Category[]
   memos         Memo[]
   refreshTokens RefreshToken[]
+  calendarMemos CalendarMemo[]
 
   @@index([providerId])
   @@index([email])
@@ -140,4 +141,39 @@ model DefaultCategory {
   updatedAt   DateTime @updatedAt
 
   @@map("default_categories")
+}
+
+enum NotificationTime {
+  ONE_MINUTE_BEFORE
+  FIVE_MINUTES_BEFORE
+  TEN_MINUTES_BEFORE
+  FIFTEEN_MINUTES_BEFORE
+  THIRTY_MINUTES_BEFORE
+  ONE_HOUR_BEFORE
+  TWO_HOURS_BEFORE
+  THREE_HOURS_BEFORE
+  ONE_DAY_BEFORE
+  TWO_DAYS_BEFORE
+  THREE_DAYS_BEFORE
+  ONE_WEEK_BEFORE
+}
+
+model CalendarMemo {
+  id              String           @id @default(uuid())
+  title           String
+  startDate       DateTime         // 시작 날짜/시간
+  endDate         DateTime         // 끝 날짜/시간
+  hasNotification Boolean          @default(false)
+  notifyBefore    NotificationTime? // 시작 날짜 기준 알림 시점
+
+  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId          String
+
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  @@index([userId])
+  @@index([startDate])
+  @@index([userId, startDate])
+  @@map("calendar_memos")
 }
