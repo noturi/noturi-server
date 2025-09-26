@@ -8,6 +8,7 @@ import { MemosModule } from './modules/memos/memos.module';
 import { StatisticsModule } from './modules/statistics/statistics.module';
 import { UsersModule } from './modules/users/users.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
+import { CalendarMemosModule } from './modules/calendar-memos/calendar-memos.module';
 import { LoggerMiddleware } from './common/middlewares/logger.middleware';
 import { PrismaModule } from '../prisma/prisma.module';
 
@@ -23,6 +24,7 @@ import { PrismaModule } from '../prisma/prisma.module';
     StatisticsModule,
     UsersModule,
     DashboardModule,
+    CalendarMemosModule,
   ],
   controllers: [AppController],
   providers: [AppService],
