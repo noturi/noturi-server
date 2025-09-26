@@ -19,7 +19,7 @@ import {
   UpdateCalendarMemoDto, 
   QueryCalendarMemoDto, 
   ResponseCalendarMemoDto, 
-  CalendarMemoListResponseDto 
+  CalendarMemoMonthlyResponseDto 
 } from './dto';
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 import { AuthenticatedRequest } from '../../../common/types/auth.types';
@@ -41,27 +41,13 @@ export class CalendarMemosClientController {
   }
 
   @Get()
-  @ApiOperation({ summary: '캘린더 일정 목록 조회' })
-  @ApiResponse({ status: 200, description: '조회 성공', type: CalendarMemoListResponseDto })
+  @ApiOperation({ 
+    summary: '캘린더 일정 월별 조회', 
+    description: '특정 년월의 캘린더 일정을 조회합니다. 캘린더 뷰에서 점 표시용으로 사용합니다.' 
+  })
+  @ApiResponse({ status: 200, description: '조회 성공', type: CalendarMemoMonthlyResponseDto })
   async getCalendarMemos(@Request() req: AuthenticatedRequest, @Query() queryDto: QueryCalendarMemoDto) {
     return this.calendarMemosService.getCalendarMemos(req.user.id, queryDto);
-  }
-
-  @Get('date-range')
-  @ApiOperation({ summary: '날짜 범위로 캘린더 일정 조회 (캘린더 뷰용)' })
-  @ApiQuery({ name: 'startDate', description: '시작 날짜', example: '2024-12-01T00:00:00.000Z' })
-  @ApiQuery({ name: 'endDate', description: '끝 날짜', example: '2024-12-31T23:59:59.999Z' })
-  @ApiResponse({ status: 200, description: '조회 성공', type: [ResponseCalendarMemoDto] })
-  async getCalendarMemosByDateRange(
-    @Request() req: AuthenticatedRequest,
-    @Query('startDate') startDate: string,
-    @Query('endDate') endDate: string,
-  ) {
-    return this.calendarMemosService.getCalendarMemosByDateRange(
-      req.user.id,
-      new Date(startDate),
-      new Date(endDate),
-    );
   }
 
   @Get('notifications/enabled')

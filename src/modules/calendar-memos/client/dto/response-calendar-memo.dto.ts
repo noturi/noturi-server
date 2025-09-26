@@ -32,19 +32,16 @@ export class ResponseCalendarMemoDto {
   updatedAt: Date;
 }
 
-export class CalendarMemoListResponseDto {
-  @ApiProperty({ type: [ResponseCalendarMemoDto], description: '일정 목록' })
+export class CalendarMemoMonthlyResponseDto {
+  @ApiProperty({ example: 2024, description: '조회된 년도' })
+  year: number;
+
+  @ApiProperty({ example: 12, description: '조회된 월' })
+  month: number;
+
+  @ApiProperty({ type: [ResponseCalendarMemoDto], description: '해당 월의 일정 목록' })
   data: ResponseCalendarMemoDto[];
 
-  @ApiProperty({ example: 1, description: '현재 페이지' })
-  page: number;
-
-  @ApiProperty({ example: 20, description: '페이지당 개수' })
-  limit: number;
-
-  @ApiProperty({ example: 100, description: '전체 개수' })
+  @ApiProperty({ example: 15, description: '해당 월의 총 일정 개수' })
   total: number;
-
-  @ApiProperty({ example: 5, description: '전체 페이지 수' })
-  totalPages: number;
 }

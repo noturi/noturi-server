@@ -26,10 +26,16 @@ export class CalendarMemosService {
   }
 
   async getCalendarMemos(userId: string, queryDto: QueryCalendarMemoDto) {
-    const { keyword, startDate, endDate, hasNotification, page = '1', limit = '20' } = queryDto;
+    const { keyword, year, month, hasNotification } = queryDto;
 
-    const pageNum = parseInt(page);
-    const limitNum = parseInt(limit);
+    // 기본값: 현재 년월
+    const now = new Date();
+    const targetYear = year || now.getFullYear();
+    const targetMonth = month || now.getMonth() + 1;
+
+    // 해당 월의 시작일과 마지막일 계산
+    const startDate = new Date(targetYear, targetMonth - 1, 1);
+    const endDate = new Date(targetYear, targetMonth, 0, 23, 59, 59, 999);
 
     const where: any = {
       userId,
@@ -37,37 +43,43 @@ export class CalendarMemosService {
       ...(keyword && {
         title: { contains: keyword, mode: 'insensitive' },
       }),
+      OR: [
+        // 시작 날짜가 해당 월에 있음
+        {
+          startDate: {
+            gte: startDate,
+            lte: endDate,
+          },
+        },
+        // 끝 날짜가 해당 월에 있음
+        {
+          endDate: {
+            gte: startDate,
+            lte: endDate,
+          },
+        },
+        // 일정이 해당 월을 완전히 포함함
+        {
+          startDate: {
+            lt: startDate,
+          },
+          endDate: {
+            gt: endDate,
+          },
+        },
+      ],
     };
 
-    // 날짜 범위 필터링
-    if (startDate || endDate) {
-      where.startDate = {};
-      if (startDate) {
-        where.startDate.gte = new Date(startDate);
-      }
-      if (endDate) {
-        where.startDate.lte = new Date(endDate);
-      }
-    }
-
-    const [calendarMemos, total] = await Promise.all([
-      this.prisma.calendarMemo.findMany({
-        where,
-        orderBy: { startDate: 'asc' },
-        skip: (pageNum - 1) * limitNum,
-        take: limitNum,
-      }),
-      this.prisma.calendarMemo.count({ where }),
-    ]);
-
-    const totalPages = Math.ceil(total / limitNum);
+    const calendarMemos = await this.prisma.calendarMemo.findMany({
+      where,
+      orderBy: { startDate: 'asc' },
+    });
 
     return {
+      year: targetYear,
+      month: targetMonth,
       data: calendarMemos,
-      page: pageNum,
-      limit: limitNum,
-      total,
-      totalPages,
+      total: calendarMemos.length,
     };
   }
 
@@ -108,40 +120,6 @@ export class CalendarMemosService {
     });
   }
 
-  // 특정 날짜 범위의 일정 조회 (캘린더 뷰용)
-  async getCalendarMemosByDateRange(userId: string, startDate: Date, endDate: Date) {
-    return this.prisma.calendarMemo.findMany({
-      where: {
-        userId,
-        OR: [
-          // 시작 날짜가 범위 내에 있음
-          {
-            startDate: {
-              gte: startDate,
-              lte: endDate,
-            },
-          },
-          // 끝 날짜가 범위 내에 있음
-          {
-            endDate: {
-              gte: startDate,
-              lte: endDate,
-            },
-          },
-          // 일정이 범위를 완전히 포함함
-          {
-            startDate: {
-              lte: startDate,
-            },
-            endDate: {
-              gte: endDate,
-            },
-          },
-        ],
-      },
-      orderBy: { startDate: 'asc' },
-    });
-  }
 
   // 알림 설정된 일정들 조회 (클라이언트에서 로컬 알림 설정용)
   async getNotificationEnabledCalendarMemos(userId: string) {
