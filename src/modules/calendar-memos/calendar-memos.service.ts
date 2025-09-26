@@ -1,10 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
-import { 
-  CreateCalendarMemoDto, 
-  QueryCalendarMemoDto, 
-  UpdateCalendarMemoDto 
-} from './client/dto';
+import { CreateCalendarMemoDto, QueryCalendarMemoDto, UpdateCalendarMemoDto } from './client/dto';
 
 @Injectable()
 export class CalendarMemosService {
@@ -119,7 +115,6 @@ export class CalendarMemosService {
       where: { id: calendarMemo.id },
     });
   }
-
 
   // 알림 설정된 일정들 조회 (클라이언트에서 로컬 알림 설정용)
   async getNotificationEnabledCalendarMemos(userId: string) {
