@@ -39,7 +39,7 @@ export class ClientAuthService {
         let counter = 1;
 
         // 닉네임이 중복되지 않을 때까지 반복
-        while (await this.prismaService.user.findUnique({ where: { nickname } })) {
+        while (await this.prismaService.user.findFirst({ where: { nickname } })) {
           nickname = `${baseNickname}${counter}`;
           counter++;
         }
@@ -140,7 +140,7 @@ export class ClientAuthService {
         let counter = 1;
 
         // 닉네임이 중복되지 않을 때까지 반복
-        while (await this.prismaService.user.findUnique({ where: { nickname } })) {
+        while (await this.prismaService.user.findFirst({ where: { nickname } })) {
           nickname = `${baseNickname}${counter}`;
           counter++;
         }
