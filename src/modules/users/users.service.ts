@@ -133,18 +133,13 @@ export class UsersService {
     };
 
     // sort 파라미터 처리
-    const orderBy: any[] = [];
+    const orderBy: any = {};
     if (sort.length > 0) {
       sort.forEach((sortItem) => {
-        orderBy.push({ [sortItem.id]: sortItem.desc ? 'desc' : 'asc' });
+        orderBy[sortItem.id] = sortItem.desc ? 'desc' : 'asc';
       });
     } else {
-      orderBy.push({ createdAt: 'desc' }); // 기본 정렬
-    }
-
-    // 항상 createdAt을 보조 정렬 기준으로 추가하여 일관성 유지
-    if (!orderBy.find((o) => o.hasOwnProperty('createdAt'))) {
-      orderBy.push({ createdAt: 'desc' });
+      orderBy.createdAt = 'desc'; // 기본 정렬
     }
 
     const [users, total] = await Promise.all([
