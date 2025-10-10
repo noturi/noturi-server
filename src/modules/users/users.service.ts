@@ -136,8 +136,16 @@ export class UsersService {
     const orderBy: any = {};
     if (sort.length > 0) {
       sort.forEach((sortItem) => {
-        orderBy[sortItem.id] = sortItem.desc ? 'desc' : 'asc';
+        // sortItem.id가 유효한 필드인지 확인
+        if (sortItem.id && typeof sortItem.id === 'string') {
+          orderBy[sortItem.id] = sortItem.desc ? 'desc' : 'asc';
+        }
       });
+
+      // 유효한 정렬 필드가 없으면 기본 정렬 적용
+      if (Object.keys(orderBy).length === 0) {
+        orderBy.createdAt = 'desc';
+      }
     } else {
       orderBy.createdAt = 'desc'; // 기본 정렬
     }
