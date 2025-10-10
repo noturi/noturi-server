@@ -21,15 +21,6 @@ export class AdminAuthService {
       throw new ConflictException('이미 존재하는 이메일입니다');
     }
 
-    // 닉네임 중복 체크
-    const existingNickname = await this.prisma.user.findUnique({
-      where: { nickname: data.nickname },
-    });
-
-    if (existingNickname) {
-      throw new ConflictException('이미 존재하는 닉네임입니다');
-    }
-
     // 패스워드 해시
     const hashedPassword = await bcrypt.hash(data.password, 12);
 
@@ -40,7 +31,7 @@ export class AdminAuthService {
         name: data.name,
         nickname: data.nickname,
         password: hashedPassword,
-        role: 'ADMIN',
+        role: data.role,
 
         providers: [],
         providerId: null,

@@ -1,5 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEmail, IsString, MinLength, MaxLength } from 'class-validator';
+import { IsEmail, IsString, MinLength, MaxLength, IsEnum } from 'class-validator';
+import { UserRole } from '../../../../common/enums/permissions.enum';
 
 export class AdminLoginDto {
   @ApiProperty({ example: 'admin@noturi.com', description: '어드민 이메일' })
@@ -33,5 +34,14 @@ export class AdminRegisterDto {
   @IsString()
   @MinLength(8)
   password: string;
+
+  @ApiProperty({ 
+    example: 'ADMIN', 
+    description: '사용자 역할',
+    enum: UserRole,
+    enumName: 'UserRole'
+  })
+  @IsEnum(UserRole)
+  role: UserRole;
 }
 
