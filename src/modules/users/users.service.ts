@@ -132,13 +132,15 @@ export class UsersService {
       }),
     };
 
-    // sort 파라미터 처리
     const orderBy: any = {};
     if (sort.length > 0) {
       sort.forEach((sortItem) => {
         // sortItem.id가 유효한 필드인지 확인
         if (sortItem.id && typeof sortItem.id === 'string') {
-          orderBy[sortItem.id] = sortItem.desc ? 'desc' : 'asc';
+          // desc 값 확인 - boolean 또는 문자열 처리
+          const isDesc = sortItem.desc === true || (sortItem.desc as any) === 'true';
+          const sortOrder = isDesc ? 'desc' : 'asc';
+          orderBy[sortItem.id] = sortOrder;
         }
       });
 
