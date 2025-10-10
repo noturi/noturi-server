@@ -21,7 +21,15 @@ export class UsersAdminController {
   @ApiResponse({ status: 200, description: '조회 성공', type: AdminUserListResponseDto })
   @ApiResponse({ status: 403, description: '권한 없음', type: ErrorResponseDto })
   async getAllUsers(@Query() queryDto: AdminUserQueryDto) {
-    return this.usersService.getAllUsers(queryDto);
+    try {
+      console.log('Admin users API called with queryDto:', queryDto);
+      const result = await this.usersService.getAllUsers(queryDto);
+      console.log('Admin users API result:', result);
+      return result;
+    } catch (error) {
+      console.error('Admin users API error:', error);
+      throw error;
+    }
   }
 
   @Get(':id')
