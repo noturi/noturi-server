@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsOptional, IsString, IsInt, Min, IsEnum, IsArray, ValidateNested } from 'class-validator';
+import { IsOptional, IsString, IsInt, Min, IsArray, ValidateNested } from 'class-validator';
 import { Transform, Type } from 'class-transformer';
 import { UserRole } from '../../../../common/enums/permissions.enum';
 
@@ -29,13 +29,18 @@ export class AdminUserQueryDto {
 
   @ApiProperty({
     example: 'USER',
-    description: '사용자 역할로 필터링',
+    description: '사용자 역할로 필터링 (단일 값 또는 배열)',
     enum: UserRole,
     required: false,
   })
   @IsOptional()
-  @IsEnum(UserRole)
-  role?: UserRole;
+  @Transform(({ value }) => {
+    if (typeof value === 'string') {
+      return value.includes(',') ? value.split(',') : value;
+    }
+    return value;
+  })
+  role?: UserRole | UserRole[];
 
   @ApiProperty({
     example: 1,
