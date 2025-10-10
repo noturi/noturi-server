@@ -8,6 +8,12 @@ export class SortDto {
   id: string;
 
   @IsOptional()
+  @Transform(({ value }) => {
+    if (typeof value === 'string') {
+      return value === 'true';
+    }
+    return Boolean(value);
+  })
   desc?: boolean;
 }
 
@@ -20,8 +26,6 @@ export class AdminUserQueryDto {
   @IsOptional()
   @IsString()
   email?: string;
-
-  
 
   @ApiProperty({
     example: 'USER',
@@ -74,9 +78,7 @@ export class AdminUserQueryDto {
     return value || [];
   })
   @IsArray()
-  @ValidateNested({ each: true })
-  @Type(() => SortDto)
-  sort?: SortDto[] = [];
+  sort?: any[] = [];
 
   @ApiProperty({
     example: '1756738800000,1756825200000',
