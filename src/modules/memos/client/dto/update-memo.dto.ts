@@ -29,12 +29,4 @@ export class UpdateMemoDto {
   @IsOptional()
   @IsUUID()
   categoryId?: string;
-
-  @ApiProperty({
-    example: '2024-01-15T10:30:00.000Z',
-    description: '경험 날짜',
-    required: false,
-  })
-  @IsOptional()
-  experienceDate?: Date;
 }

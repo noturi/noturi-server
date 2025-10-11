@@ -7,7 +7,7 @@ export class MemosService {
   constructor(private readonly prisma: PrismaService) {}
 
   async createMemo(userId: string, createMemoDto: CreateMemoDto) {
-    const { title, content, rating, categoryId, experienceDate } = createMemoDto;
+    const { title, content, rating, categoryId } = createMemoDto;
 
     // 카테고리가 제공된 경우, 사용자 소유인지 확인
     if (categoryId) {
@@ -25,7 +25,6 @@ export class MemosService {
         title,
         content,
         rating,
-        experienceDate,
         userId,
         categoryId,
       },
@@ -111,7 +110,7 @@ export class MemosService {
   async updateMemo(userId: string, memoId: string, updateMemoDto: UpdateMemoDto) {
     const memo = await this.getMemoById(userId, memoId);
 
-    const { title, content, rating, categoryId, experienceDate } = updateMemoDto;
+    const { title, content, rating, categoryId } = updateMemoDto;
 
     // 카테고리가 변경되는 경우, 해당 카테고리가 사용자 소유인지 확인
     if (categoryId && categoryId !== memo.categoryId) {
@@ -131,7 +130,6 @@ export class MemosService {
         ...(content !== undefined && { content }),
         ...(rating !== undefined && { rating }),
         ...(categoryId !== undefined && { categoryId }),
-        ...(experienceDate !== undefined && { experienceDate }),
       },
       include: {
         category: {
