@@ -9,13 +9,15 @@ export class MemosService {
   async createMemo(userId: string, createMemoDto: CreateMemoDto) {
     const { title, content, rating, categoryId, experienceDate } = createMemoDto;
 
-    // 카테고리가 사용자 소유인지 확인
-    const category = await this.prisma.category.findFirst({
-      where: { id: categoryId, userId },
-    });
+    // 카테고리가 제공된 경우, 사용자 소유인지 확인
+    if (categoryId) {
+      const category = await this.prisma.category.findFirst({
+        where: { id: categoryId, userId },
+      });
 
-    if (!category) {
-      throw new NotFoundException('카테고리를 찾을 수 없습니다');
+      if (!category) {
+        throw new NotFoundException('카테고리를 찾을 수 없습니다');
+      }
     }
 
     return this.prisma.memo.create({
@@ -28,13 +30,15 @@ export class MemosService {
         categoryId,
       },
       include: {
-        category: {
-          select: {
-            id: true,
-            name: true,
-            color: true,
-          },
-        },
+        category: categoryId
+          ? {
+              select: {
+                id: true,
+                name: true,
+                color: true,
+              },
+            }
+          : false,
       },
     });
   }

@@ -4,20 +4,21 @@ export class ResponseMemoDto {
   @ApiProperty({ example: '550e8400-e29b-41d4-a716-446655440000', description: '메모 ID' })
   id: string;
 
-  @ApiProperty({ example: '오늘의 회의 내용', description: '메모 제목', required: false })
-  title?: string;
+  @ApiProperty({ example: '오늘의 회의 내용', description: '메모 제목' })
+  title: string;
 
   @ApiProperty({ example: '프로젝트 진행 상황에 대해 논의했다.', description: '메모 내용', required: false })
   content?: string;
 
-  @ApiProperty({ example: 4.5, description: '평점 (1.0~5.0)' })
-  rating: number;
+  @ApiProperty({ example: 4.5, description: '평점 (1.0~5.0)', required: false })
+  rating?: number;
 
   @ApiProperty({
     example: '550e8400-e29b-41d4-a716-446655440000',
     description: '카테고리 ID',
+    required: false,
   })
-  categoryId: string;
+  categoryId?: string;
 
   @ApiProperty({
     example: { id: '550e8400-e29b-41d4-a716-446655440000', name: '업무', color: '#FF6B6B' },

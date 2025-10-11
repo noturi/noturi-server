@@ -237,26 +237,32 @@ export class StatisticsService {
       (acc, memo) => {
         const date = memo.createdAt.toISOString().split('T')[0];
         if (!acc[date]) {
-          acc[date] = { count: 0, totalRating: 0 };
+          acc[date] = { count: 0, totalRating: 0, ratingCount: 0 };
         }
         acc[date].count++;
-        acc[date].totalRating += Number(memo.rating);
+        if (memo.rating !== null) {
+          acc[date].totalRating += Number(memo.rating);
+          acc[date].ratingCount++;
+        }
         return acc;
       },
-      {} as Record<string, { count: number; totalRating: number }>,
+      {} as Record<string, { count: number; totalRating: number; ratingCount: number }>,
     );
 
     // 트렌드 데이터 생성
     const trends = Object.entries(dailyData).map(([date, data]) => ({
       date,
       count: data.count,
-      averageRating: Math.round((data.totalRating / data.count) * 10) / 10,
+      averageRating: data.ratingCount > 0 ? Math.round((data.totalRating / data.ratingCount) * 10) / 10 : 0,
     }));
 
     const totalMemos = memos.length;
+    const memosWithRating = memos.filter((memo) => memo.rating !== null);
     const averageRating =
-      totalMemos > 0
-        ? Math.round((memos.reduce((sum, memo) => sum + Number(memo.rating), 0) / totalMemos) * 10) / 10
+      memosWithRating.length > 0
+        ? Math.round(
+            (memosWithRating.reduce((sum, memo) => sum + Number(memo.rating), 0) / memosWithRating.length) * 10,
+          ) / 10
         : 0;
 
     const growthRate =
@@ -392,8 +398,13 @@ export class StatisticsService {
       const count = memos.length;
       const thisMonthCount = memos.filter((memo) => memo.createdAt >= thisMonthStart).length;
 
+      const memosWithRating = memos.filter((memo) => memo.rating !== null);
       const averageRating =
-        count > 0 ? Math.round((memos.reduce((sum, memo) => sum + Number(memo.rating), 0) / count) * 10) / 10 : 0;
+        memosWithRating.length > 0
+          ? Math.round(
+              (memosWithRating.reduce((sum, memo) => sum + Number(memo.rating), 0) / memosWithRating.length) * 10,
+            ) / 10
+          : 0;
 
       const lastMemo = memos.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())[0];
 
