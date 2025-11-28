@@ -43,10 +43,30 @@ model User {
   memos         Memo[]
   refreshTokens RefreshToken[]
   calendarMemos CalendarMemo[]
+  devices       UserDevice[]   // 푸시 알림용 디바이스
 
   @@index([providerId])
   @@index([email])
   @@map("users")
+}
+
+// 사용자 디바이스 (푸시 알림용)
+model UserDevice {
+  id             String   @id @default(uuid())
+  expoPushToken  String   @unique  // Expo Push Token
+  deviceName     String?           // 기기 이름 (예: "iPhone 15 Pro")
+  platform       String?           // ios, android
+  
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId         String
+  
+  isActive       Boolean  @default(true)  // 토큰 유효 여부
+  createdAt      DateTime @default(now())
+  lastActiveAt   DateTime @updatedAt
+
+  @@index([userId])
+  @@index([expoPushToken])
+  @@map("user_devices")
 }
 
 model Category {
@@ -165,6 +185,7 @@ model CalendarMemo {
   endDate         DateTime         // 끝 날짜/시간
   hasNotification Boolean          @default(false)
   notifyBefore    NotificationTime? // 시작 날짜 기준 알림 시점
+  notificationSent Boolean         @default(false)  // 알림 발송 여부
 
   user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId          String
@@ -175,5 +196,6 @@ model CalendarMemo {
   @@index([userId])
   @@index([startDate])
   @@index([userId, startDate])
+  @@index([hasNotification, notificationSent])  // 알림 조회용 인덱스
   @@map("calendar_memos")
 }
