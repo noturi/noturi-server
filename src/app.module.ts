@@ -1,5 +1,6 @@
 import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { ScheduleModule } from '@nestjs/schedule';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { CategoriesModule } from './modules/categories/categories.module';
@@ -9,6 +10,7 @@ import { StatisticsModule } from './modules/statistics/statistics.module';
 import { UsersModule } from './modules/users/users.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { CalendarMemosModule } from './modules/calendar-memos/calendar-memos.module';
+import { NotificationsModule } from './modules/notifications/notifications.module';
 import { LoggerMiddleware } from './common/middlewares/logger.middleware';
 import { PrismaModule } from '../prisma/prisma.module';
 
@@ -17,6 +19,7 @@ import { PrismaModule } from '../prisma/prisma.module';
     ConfigModule.forRoot({
       isGlobal: true,
     }),
+    ScheduleModule.forRoot(),  // 스케줄러 모듈
     PrismaModule,
     AuthModule,
     CategoriesModule,
@@ -25,6 +28,7 @@ import { PrismaModule } from '../prisma/prisma.module';
     UsersModule,
     DashboardModule,
     CalendarMemosModule,
+    NotificationsModule,  // 푸시 알림 모듈
   ],
   controllers: [AppController],
   providers: [AppService],
