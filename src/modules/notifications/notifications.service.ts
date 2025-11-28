@@ -54,7 +54,7 @@ export class NotificationsService {
 
       for (const memo of pendingMemos) {
         const notifyTime = this.calculateNotifyTime(memo.startDate, memo.notifyBefore!);
-        
+
         // 알림 시간이 현재 시간 이전이거나 같으면 알림 발송
         if (notifyTime <= now) {
           await this.sendNotificationForMemo(memo);
@@ -70,7 +70,7 @@ export class NotificationsService {
    */
   private async sendNotificationForMemo(memo: any) {
     const { user, title, startDate } = memo;
-    
+
     if (!user.devices || user.devices.length === 0) {
       this.logger.warn(`사용자 ${user.id}에게 등록된 디바이스가 없습니다.`);
       return;
@@ -87,13 +87,13 @@ export class NotificationsService {
 
     try {
       await this.sendExpoPushNotifications(messages);
-      
+
       // 알림 발송 완료 표시
       await this.prisma.calendarMemo.update({
         where: { id: memo.id },
         data: { notificationSent: true },
       });
-      
+
       this.logger.log(`알림 발송 완료: ${memo.id} -> ${user.devices.length}개 디바이스`);
     } catch (error) {
       this.logger.error(`알림 발송 실패: ${memo.id}`, error);
@@ -109,7 +109,7 @@ export class NotificationsService {
     const response = await fetch('https://exp.host/--/api/v2/push/send', {
       method: 'POST',
       headers: {
-        'Accept': 'application/json',
+        Accept: 'application/json',
         'Accept-Encoding': 'gzip, deflate',
         'Content-Type': 'application/json',
       },
@@ -117,7 +117,7 @@ export class NotificationsService {
     });
 
     const result = await response.json();
-    
+
     if (!response.ok) {
       throw new Error(`Expo Push API 오류: ${JSON.stringify(result)}`);
     }
@@ -237,4 +237,3 @@ export class NotificationsService {
     }).format(date);
   }
 }
-
