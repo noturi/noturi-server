@@ -27,7 +27,7 @@ export class NotificationsService {
   /**
    * 매 분마다 알림을 체크하고 발송
    */
-  @Cron(CronExpression.EVERY_MINUTE)
+  @Cron(CronExpression.EVERY_MINUTE, { name: 'check-notifications' })
   async checkAndSendNotifications() {
     const now = new Date();
     this.logger.debug(`알림 체크 시작: ${now.toISOString()}`);
