@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
-import { PrismaService } from '../../../prisma/prisma.service';
 import { NotificationTime } from '@prisma/client';
+import { PrismaService } from '../../../prisma/prisma.service';
 
 interface ExpoPushMessage {
   to: string;
@@ -52,8 +52,19 @@ export class NotificationsService {
         },
       });
 
+      this.logger.debug(`대기 중인 알림 ${pendingMemos.length}개 발견`);
+
       for (const memo of pendingMemos) {
         const notifyTime = this.calculateNotifyTime(memo.startDate, memo.notifyBefore!);
+
+        this.logger.debug(
+          `[${memo.id}] 일정: "${memo.title}" | ` +
+            `시작: ${memo.startDate.toISOString()} | ` +
+            `notifyBefore: ${memo.notifyBefore} | ` +
+            `알림시간: ${notifyTime.toISOString()} | ` +
+            `현재: ${now.toISOString()} | ` +
+            `발송여부: ${notifyTime <= now}`,
+        );
 
         // 알림 시간이 현재 시간 이전이거나 같으면 알림 발송
         if (notifyTime <= now) {
@@ -80,7 +91,7 @@ export class NotificationsService {
     const messages: ExpoPushMessage[] = user.devices.map((device: any) => ({
       to: device.expoPushToken,
       sound: 'default' as const,
-      title: '📅 일정 알림',
+      title: '일정 알림',
       body: `${title} - ${formattedTime}`,
       data: { calendarMemoId: memo.id },
     }));
