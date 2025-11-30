@@ -80,19 +80,19 @@ export class NotificationsService {
    * 특정 캘린더 메모에 대한 알림 발송
    */
   private async sendNotificationForMemo(memo: any) {
-    const { user, title, startDate } = memo;
+    const { user, title } = memo;
 
     if (!user.devices || user.devices.length === 0) {
       this.logger.warn(`사용자 ${user.id}에게 등록된 디바이스가 없습니다.`);
       return;
     }
 
-    const formattedTime = this.formatDateTime(startDate);
+    // const formattedTime = this.formatDateTime(startDate);
     const messages: ExpoPushMessage[] = user.devices.map((device: any) => ({
       to: device.expoPushToken,
       sound: 'default' as const,
-      title,
-      body: formattedTime,
+      title: '일정 알림',
+      body: title,
       data: { calendarMemoId: memo.id },
     }));
 
