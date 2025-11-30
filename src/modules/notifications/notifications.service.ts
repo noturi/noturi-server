@@ -91,8 +91,8 @@ export class NotificationsService {
     const messages: ExpoPushMessage[] = user.devices.map((device: any) => ({
       to: device.expoPushToken,
       sound: 'default' as const,
-      title: '일정 알림',
-      body: `${title} - ${formattedTime}`,
+      title,
+      body: formattedTime,
       data: { calendarMemoId: memo.id },
     }));
 
