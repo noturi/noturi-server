@@ -2,7 +2,7 @@ import { ApiProperty } from '@nestjs/swagger';
 import { IsString, IsDateString, IsBoolean, IsOptional, IsEnum, MaxLength } from 'class-validator';
 
 export enum NotificationTime {
-  ONE_MINUTE_BEFORE = 'ONE_MINUTE_BEFORE',
+  AT_START_TIME = 'AT_START_TIME',
   FIVE_MINUTES_BEFORE = 'FIVE_MINUTES_BEFORE',
   TEN_MINUTES_BEFORE = 'TEN_MINUTES_BEFORE',
   FIFTEEN_MINUTES_BEFORE = 'FIFTEEN_MINUTES_BEFORE',

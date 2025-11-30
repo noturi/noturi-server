@@ -195,8 +195,8 @@ export class NotificationsService {
     const notifyTime = new Date(startDate);
 
     switch (notifyBefore) {
-      case 'ONE_MINUTE_BEFORE':
-        notifyTime.setMinutes(notifyTime.getMinutes() - 1);
+      case 'AT_START_TIME':
+        // 시작 시간 그대로 (0분 전)
         break;
       case 'FIVE_MINUTES_BEFORE':
         notifyTime.setMinutes(notifyTime.getMinutes() - 5);
