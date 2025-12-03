@@ -7,13 +7,14 @@ export class CalendarMemosService {
   constructor(private readonly prisma: PrismaService) {}
 
   async createCalendarMemo(userId: string, createCalendarMemoDto: CreateCalendarMemoDto) {
-    const { title, startDate, endDate, hasNotification, notifyBefore } = createCalendarMemoDto;
+    const { title, startDate, endDate, isAllDay, hasNotification, notifyBefore } = createCalendarMemoDto;
 
     return this.prisma.calendarMemo.create({
       data: {
         title,
         startDate: new Date(startDate),
         endDate: new Date(endDate),
+        isAllDay: isAllDay || false,
         hasNotification: hasNotification || false,
         notifyBefore,
         userId,
@@ -94,7 +95,7 @@ export class CalendarMemosService {
   async updateCalendarMemo(userId: string, calendarMemoId: string, updateCalendarMemoDto: UpdateCalendarMemoDto) {
     await this.getCalendarMemoById(userId, calendarMemoId);
 
-    const { title, startDate, endDate, hasNotification, notifyBefore } = updateCalendarMemoDto;
+    const { title, startDate, endDate, isAllDay, hasNotification, notifyBefore } = updateCalendarMemoDto;
 
     return this.prisma.calendarMemo.update({
       where: { id: calendarMemoId },
@@ -102,6 +103,7 @@ export class CalendarMemosService {
         ...(title !== undefined && { title }),
         ...(startDate !== undefined && { startDate: new Date(startDate) }),
         ...(endDate !== undefined && { endDate: new Date(endDate) }),
+        ...(isAllDay !== undefined && { isAllDay }),
         ...(hasNotification !== undefined && { hasNotification }),
         ...(notifyBefore !== undefined && { notifyBefore }),
       },

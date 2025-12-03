@@ -14,6 +14,9 @@ export class ResponseCalendarMemoDto {
   @ApiProperty({ example: '2024-12-25T16:00:00.000Z', description: '끝 날짜/시간' })
   endDate: Date;
 
+  @ApiProperty({ example: false, description: '하루종일 여부' })
+  isAllDay: boolean;
+
   @ApiProperty({ example: true, description: '알림 설정 여부' })
   hasNotification: boolean;
 

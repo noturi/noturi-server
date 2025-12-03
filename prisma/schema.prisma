@@ -183,6 +183,7 @@ model CalendarMemo {
   title           String
   startDate       DateTime         // 시작 날짜/시간
   endDate         DateTime         // 끝 날짜/시간
+  isAllDay        Boolean          @default(false)  // 하루종일 여부
   hasNotification Boolean          @default(false)
   notifyBefore    NotificationTime? // 시작 날짜 기준 알림 시점
   notificationSent Boolean         @default(false)  // 알림 발송 여부
