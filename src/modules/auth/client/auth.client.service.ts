@@ -28,11 +28,14 @@ export class ClientAuthService {
       }
 
       // 사용자 찾기 또는 생성
+      let isNewUser = false;
       let user = await this.prismaService.user.findUnique({
         where: { email },
       });
 
       if (!user) {
+        isNewUser = true;
+
         // 닉네임 중복 처리
         const baseNickname = email.split('@')[0];
         let nickname = baseNickname;
@@ -98,6 +101,7 @@ export class ClientAuthService {
           accessToken,
           refreshToken,
         },
+        isNewUser,
       };
     } catch (error) {
       if (error instanceof UnauthorizedException) {
@@ -127,6 +131,7 @@ export class ClientAuthService {
       }
 
       // Apple ID로 사용자 찾기
+      let isNewUser = false;
       let user = await this.prismaService.user.findFirst({
         where: {
           OR: [{ providerId: appleId }, { email: userEmail }],
@@ -134,6 +139,8 @@ export class ClientAuthService {
       });
 
       if (!user && userEmail) {
+        isNewUser = true;
+
         // 새 사용자 생성 - 닉네임 중복 처리
         const baseNickname = userEmail.split('@')[0];
         let nickname = baseNickname;
@@ -199,6 +206,7 @@ export class ClientAuthService {
           accessToken,
           refreshToken,
         },
+        isNewUser,
       };
     } catch (error) {
       console.error('Apple 로그인 에러:', error);
