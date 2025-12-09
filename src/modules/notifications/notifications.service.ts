@@ -32,13 +32,16 @@ export class NotificationsService {
     const now = new Date();
     this.logger.debug(`알림 체크 시작: ${now.toISOString()}`);
 
+    // 시작 시간이 1분 전까지인 일정도 포함 (AT_START_TIME 알림 처리용)
+    const oneMinuteAgo = new Date(now.getTime() - 60 * 1000);
+
     try {
       // 알림이 필요한 캘린더 메모 조회
       const pendingMemos = await this.prisma.calendarMemo.findMany({
         where: {
           hasNotification: true,
           notificationSent: false,
-          startDate: { gte: now }, // 아직 시작하지 않은 일정만
+          startDate: { gte: oneMinuteAgo }, // 시작 시간이 1분 전 이후인 일정
         },
         include: {
           user: {
