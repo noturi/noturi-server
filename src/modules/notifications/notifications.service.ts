@@ -38,7 +38,6 @@ export class NotificationsService {
         where: {
           hasNotification: true,
           notificationSent: false,
-          notifyBefore: { not: null },
           startDate: { gte: now }, // 아직 시작하지 않은 일정만
         },
         include: {
@@ -55,12 +54,14 @@ export class NotificationsService {
       this.logger.debug(`대기 중인 알림 ${pendingMemos.length}개 발견`);
 
       for (const memo of pendingMemos) {
-        const notifyTime = this.calculateNotifyTime(memo.startDate, memo.notifyBefore!, memo.isAllDay);
+        // notifyBefore가 null이면 AT_START_TIME으로 처리
+        const notifyBefore = memo.notifyBefore ?? 'AT_START_TIME';
+        const notifyTime = this.calculateNotifyTime(memo.startDate, notifyBefore as any, memo.isAllDay as boolean);
 
         this.logger.debug(
           `[${memo.id}] 일정: "${memo.title}" | ` +
             `시작: ${memo.startDate.toISOString()} | ` +
-            `notifyBefore: ${memo.notifyBefore} | ` +
+            `notifyBefore: ${notifyBefore} | ` +
             `알림시간: ${notifyTime.toISOString()} | ` +
             `현재: ${now.toISOString()} | ` +
             `발송여부: ${notifyTime <= now}`,
