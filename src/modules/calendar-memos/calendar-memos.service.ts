@@ -6,14 +6,23 @@ import { CreateCalendarMemoDto, QueryCalendarMemoDto, UpdateCalendarMemoDto } fr
 export class CalendarMemosService {
   constructor(private readonly prisma: PrismaService) {}
 
+  /**
+   * 초/밀리초를 00으로 정규화 (08:32:20.768 → 08:32:00.000)
+   */
+  private normalizeDateTime(dateString: string): Date {
+    const date = new Date(dateString);
+    date.setSeconds(0, 0);
+    return date;
+  }
+
   async createCalendarMemo(userId: string, createCalendarMemoDto: CreateCalendarMemoDto) {
     const { title, startDate, endDate, isAllDay, hasNotification, notifyBefore } = createCalendarMemoDto;
 
     return this.prisma.calendarMemo.create({
       data: {
         title,
-        startDate: new Date(startDate),
-        endDate: new Date(endDate),
+        startDate: this.normalizeDateTime(startDate),
+        endDate: this.normalizeDateTime(endDate),
         isAllDay: isAllDay || false,
         hasNotification: hasNotification || false,
         notifyBefore,
@@ -101,8 +110,8 @@ export class CalendarMemosService {
       where: { id: calendarMemoId },
       data: {
         ...(title !== undefined && { title }),
-        ...(startDate !== undefined && { startDate: new Date(startDate) }),
-        ...(endDate !== undefined && { endDate: new Date(endDate) }),
+        ...(startDate !== undefined && { startDate: this.normalizeDateTime(startDate) }),
+        ...(endDate !== undefined && { endDate: this.normalizeDateTime(endDate) }),
         ...(isAllDay !== undefined && { isAllDay }),
         ...(hasNotification !== undefined && { hasNotification }),
         ...(notifyBefore !== undefined && { notifyBefore }),
