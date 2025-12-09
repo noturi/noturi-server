@@ -57,6 +57,9 @@ export class ClientAuthService {
             avatarUrl: picture,
           },
         });
+
+        // 신규 회원에게 기본 카테고리 생성
+        await this.createDefaultCategories(user.id);
       } else if (!user.providers.includes('GOOGLE') || user.providerId !== googleId) {
         // 기존 사용자에 Google 정보 추가
         const updatedProviders = user.providers.includes('GOOGLE')
@@ -161,6 +164,9 @@ export class ClientAuthService {
             providerId: appleId,
           },
         });
+
+        // 신규 회원에게 기본 카테고리 생성
+        await this.createDefaultCategories(user.id);
       } else if (user && !user.providers.includes('APPLE')) {
         // 기존 사용자에 Apple 정보 추가
         const updatedProviders = [...user.providers, 'APPLE' as const];
@@ -215,5 +221,23 @@ export class ClientAuthService {
       }
       throw new UnauthorizedException(`Apple 로그인에 실패했습니다: ${error.message}`);
     }
+  }
+
+  /**
+   * 신규 회원에게 기본 카테고리 생성 (영화, 음악, 책)
+   */
+  private async createDefaultCategories(userId: string) {
+    const defaultCategories = [
+      { name: '영화', color: '#FF6B6B' },
+      { name: '음악', color: '#45B7D1' },
+      { name: '책', color: '#4ECDC4' },
+    ];
+
+    await this.prismaService.category.createMany({
+      data: defaultCategories.map((category) => ({
+        ...category,
+        userId,
+      })),
+    });
   }
 }
