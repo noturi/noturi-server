@@ -36,6 +36,11 @@ export class CreateCalendarMemoDto {
   @IsDateString()
   endDate: string;
 
+  @ApiProperty({ example: false, description: '하루종일 여부', required: false })
+  @IsOptional()
+  @IsBoolean()
+  isAllDay?: boolean;
+
   @ApiProperty({ example: true, description: '알림 설정 여부', required: false })
   @IsOptional()
   @IsBoolean()

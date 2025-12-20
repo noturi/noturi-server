@@ -32,14 +32,16 @@ export class NotificationsService {
     const now = new Date();
     this.logger.debug(`알림 체크 시작: ${now.toISOString()}`);
 
+    // 시작 시간이 1분 전까지인 일정도 포함 (AT_START_TIME 알림 처리용)
+    const oneMinuteAgo = new Date(now.getTime() - 60 * 1000);
+
     try {
       // 알림이 필요한 캘린더 메모 조회
       const pendingMemos = await this.prisma.calendarMemo.findMany({
         where: {
           hasNotification: true,
           notificationSent: false,
-          notifyBefore: { not: null },
-          startDate: { gte: now }, // 아직 시작하지 않은 일정만
+          startDate: { gte: oneMinuteAgo }, // 시작 시간이 1분 전 이후인 일정
         },
         include: {
           user: {
@@ -55,12 +57,14 @@ export class NotificationsService {
       this.logger.debug(`대기 중인 알림 ${pendingMemos.length}개 발견`);
 
       for (const memo of pendingMemos) {
-        const notifyTime = this.calculateNotifyTime(memo.startDate, memo.notifyBefore!);
+        // notifyBefore가 null이면 AT_START_TIME으로 처리
+        const notifyBefore = memo.notifyBefore ?? 'AT_START_TIME';
+        const notifyTime = this.calculateNotifyTime(memo.startDate, notifyBefore as any, memo.isAllDay as boolean);
 
         this.logger.debug(
           `[${memo.id}] 일정: "${memo.title}" | ` +
             `시작: ${memo.startDate.toISOString()} | ` +
-            `notifyBefore: ${memo.notifyBefore} | ` +
+            `notifyBefore: ${notifyBefore} | ` +
             `알림시간: ${notifyTime.toISOString()} | ` +
             `현재: ${now.toISOString()} | ` +
             `발송여부: ${notifyTime <= now}`,
@@ -190,10 +194,40 @@ export class NotificationsService {
 
   /**
    * 알림 시간 계산
+   * @param startDate 일정 시작 시간
+   * @param notifyBefore 알림 시점
+   * @param isAllDay 하루종일 여부 (true면 오전 9시 기준으로 알림)
    */
-  calculateNotifyTime(startDate: Date, notifyBefore: NotificationTime): Date {
+  calculateNotifyTime(startDate: Date, notifyBefore: NotificationTime, isAllDay: boolean = false): Date {
     const notifyTime = new Date(startDate);
 
+    // 하루종일 일정인 경우: 오전 9시 기준으로 알림
+    if (isAllDay) {
+      // 먼저 오전 9시로 시간 설정
+      notifyTime.setHours(9, 0, 0, 0);
+
+      switch (notifyBefore) {
+        case 'ONE_DAY_BEFORE':
+          notifyTime.setDate(notifyTime.getDate() - 1);
+          break;
+        case 'TWO_DAYS_BEFORE':
+          notifyTime.setDate(notifyTime.getDate() - 2);
+          break;
+        case 'THREE_DAYS_BEFORE':
+          notifyTime.setDate(notifyTime.getDate() - 3);
+          break;
+        case 'ONE_WEEK_BEFORE':
+          notifyTime.setDate(notifyTime.getDate() - 7);
+          break;
+        // 그 외 옵션(분/시간 단위)은 당일 오전 9시로 처리
+        default:
+          break;
+      }
+
+      return notifyTime;
+    }
+
+    // 일반 일정: 기존 로직
     switch (notifyBefore) {
       case 'AT_START_TIME':
         // 시작 시간 그대로 (0분 전)
