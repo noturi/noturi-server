@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsOptional, IsString, IsUUID, IsInt, Min } from 'class-validator';
+import { IsOptional, IsString, IsUUID, IsInt, Min, Max } from 'class-validator';
 import { Transform } from 'class-transformer';
 
 export class QueryMemoDto {
@@ -20,6 +20,18 @@ export class QueryMemoDto {
   @IsOptional()
   @IsUUID()
   categoryId?: string;
+
+  @ApiProperty({
+    example: 2024,
+    description: '년도로 필터링',
+    required: false,
+  })
+  @IsOptional()
+  @Transform(({ value }) => parseInt(value))
+  @IsInt()
+  @Min(2000)
+  @Max(2100)
+  year?: number;
 
   @ApiProperty({
     example: 1,

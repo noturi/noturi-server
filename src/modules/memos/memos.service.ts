@@ -43,7 +43,7 @@ export class MemosService {
   }
 
   async getMemos(userId: string, queryDto: QueryMemoDto) {
-    const { keyword, categoryId, page = 1, limit = 20 } = queryDto;
+    const { keyword, categoryId, year, page = 1, limit = 20 } = queryDto;
 
     const where: any = {
       userId,
@@ -53,6 +53,12 @@ export class MemosService {
           { title: { contains: keyword, mode: 'insensitive' } },
           { content: { contains: keyword, mode: 'insensitive' } },
         ],
+      }),
+      ...(year && {
+        createdAt: {
+          gte: new Date(`${year}-01-01T00:00:00.000Z`),
+          lt: new Date(`${year + 1}-01-01T00:00:00.000Z`),
+        },
       }),
     };
 
