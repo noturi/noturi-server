@@ -224,6 +224,56 @@ export class ClientAuthService {
   }
 
   /**
+   * 리프레시 토큰으로 새 액세스 토큰 발급
+   */
+  async refreshToken(refreshToken: string) {
+    try {
+      const payload = this.jwtService.verify(refreshToken);
+
+      if (payload.type !== 'refresh') {
+        throw new UnauthorizedException('유효하지 않은 리프레시 토큰입니다.');
+      }
+
+      const user = await this.prismaService.user.findUnique({
+        where: { id: payload.sub },
+      });
+
+      if (!user) {
+        throw new UnauthorizedException('사용자를 찾을 수 없습니다.');
+      }
+
+      // 새 액세스 토큰 생성
+      const newAccessToken = this.jwtService.sign({
+        sub: user.id,
+        email: user.email,
+        type: 'access',
+      });
+
+      // 새 리프레시 토큰 생성 (토큰 로테이션)
+      const newRefreshToken = this.jwtService.sign(
+        {
+          sub: user.id,
+          email: user.email,
+          type: 'refresh',
+        },
+        { expiresIn: getEnvConfig().REFRESH_TOKEN_EXPIRES_IN },
+      );
+
+      return {
+        tokens: {
+          accessToken: newAccessToken,
+          refreshToken: newRefreshToken,
+        },
+      };
+    } catch (error) {
+      if (error instanceof UnauthorizedException) {
+        throw error;
+      }
+      throw new UnauthorizedException('리프레시 토큰이 만료되었거나 유효하지 않습니다.');
+    }
+  }
+
+  /**
    * 신규 회원에게 기본 카테고리 생성 (영화, 음악, 책)
    */
   private async createDefaultCategories(userId: string) {
