@@ -1,7 +1,7 @@
-import { Controller, Get, Put, Delete, Body, Param, UseGuards, Request, HttpCode, HttpStatus } from '@nestjs/common';
+import { Controller, Get, Put, Delete, Body, Param, UseGuards, Request, HttpCode, HttpStatus, Patch } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { UsersService } from '../users.service';
-import { UpdateUserDto, ResponseUserDto, UserProfileDto } from './dto';
+import { UpdateUserDto, ResponseUserDto, UserProfileDto, UpdateUserSettingsDto, UserSettingsResponseDto } from './dto';
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 import { AuthenticatedRequest } from '../../../common/types/auth.types';
 import { ErrorResponseDto } from '../../../common/dto/error-response.dto';
@@ -45,5 +45,20 @@ export class UsersClientController {
   @ApiResponse({ status: 404, description: '사용자 없음', type: ErrorResponseDto })
   async deleteMyAccount(@Request() req: AuthenticatedRequest) {
     await this.usersService.deleteUser(req.user.id);
+  }
+
+  @Get('me/settings')
+  @ApiOperation({ summary: '내 설정 조회' })
+  @ApiResponse({ status: 200, description: '조회 성공', type: UserSettingsResponseDto })
+  async getMySettings(@Request() req: AuthenticatedRequest) {
+    return this.usersService.getUserSettings(req.user.id);
+  }
+
+  @Patch('me/settings')
+  @ApiOperation({ summary: '내 설정 수정' })
+  @ApiResponse({ status: 200, description: '수정 성공', type: UserSettingsResponseDto })
+  @ApiResponse({ status: 400, description: '잘못된 요청', type: ErrorResponseDto })
+  async updateMySettings(@Request() req: AuthenticatedRequest, @Body() updateDto: UpdateUserSettingsDto) {
+    return this.usersService.updateUserSettings(req.user.id, updateDto);
   }
 }
