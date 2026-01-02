@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsOptional, IsString, IsInt, Min, IsArray, ValidateNested } from 'class-validator';
-import { Transform, Type } from 'class-transformer';
+import { IsOptional, IsString, IsInt, Min, IsArray } from 'class-validator';
+import { Transform } from 'class-transformer';
 import { UserRole } from '../../../../common/enums/permissions.enum';
 
 export class SortDto {
