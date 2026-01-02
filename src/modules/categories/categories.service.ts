@@ -1,7 +1,7 @@
 // src/categories/categories.service.ts
 import { HttpException, HttpStatus, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'prisma/prisma.service';
-import { CreateCategoryDto, UpdateCategoryDto } from './client/dto';
+import { CreateCategoryDto, ReorderCategoriesDto, UpdateCategoryDto } from './client/dto';
 import { PrismaErrorHandler } from '../../common/exceptions/prisma-error.handler';
 
 @Injectable()
@@ -16,7 +16,7 @@ export class CategoriesService {
           select: { memos: true },
         },
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: [{ sortOrder: 'asc' }, { createdAt: 'desc' }],
     });
 
     return categories.map(({ _count, ...category }) => ({
@@ -107,5 +107,18 @@ export class CategoriesService {
     return this.prisma.category.delete({
       where: { id },
     });
+  }
+
+  async reorder(userId: string, reorderDto: ReorderCategoriesDto) {
+    const updates = reorderDto.categories.map(({ id, sortOrder }) =>
+      this.prisma.category.updateMany({
+        where: { id, userId },
+        data: { sortOrder },
+      }),
+    );
+
+    await this.prisma.$transaction(updates);
+
+    return this.findAll(userId);
   }
 }

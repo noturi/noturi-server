@@ -73,6 +73,7 @@ model Category {
   id        String          @id @default(uuid())
   name      String
   color     String?         // UI 색상용
+  sortOrder Int             @default(0)
   user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId    String
   memos     Memo[]

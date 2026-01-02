@@ -3,7 +3,7 @@ import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Patch, Post, Reque
 import { ApiBearerAuth, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 import { CategoriesService } from '../categories.service';
-import { CategoryDto, CreateCategoryDto, UpdateCategoryDto } from './dto';
+import { CategoryDto, CreateCategoryDto, ReorderCategoriesDto, UpdateCategoryDto } from './dto';
 import { AuthenticatedRequest } from '../../../common/types/auth.types';
 
 @ApiTags('client - 카테고리')
@@ -30,6 +30,15 @@ export class CategoriesClientController {
   findAll(@Request() req: AuthenticatedRequest) {
     const userId = req.user.id;
     return this.categoriesService.findAll(userId);
+  }
+
+  @Patch('reorder')
+  @ApiOperation({ summary: '카테고리 순서 변경', description: '카테고리들의 순서를 변경합니다.' })
+  @ApiResponse({ status: 200, description: '순서 변경 성공', type: [CategoryDto] })
+  @ApiResponse({ status: 401, description: '인증되지 않음' })
+  reorder(@Request() req: AuthenticatedRequest, @Body() reorderDto: ReorderCategoriesDto) {
+    const userId = req.user.id;
+    return this.categoriesService.reorder(userId, reorderDto);
   }
 
   @Get(':id')
