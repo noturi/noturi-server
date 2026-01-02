@@ -21,29 +21,30 @@ enum UserRole {
 }
 
 model User {
-  id            String         @id @default(uuid())
-  nickname      String
-  email         String         @unique
-  name          String?        // 실제 이름 (OAuth에서 가져옴)
-  
+  id       String  @id @default(uuid())
+  nickname String
+  email    String  @unique
+  name     String? // 실제 이름 (OAuth에서 가져옴)
+
   // OAuth 인증 (nullable - 어드민은 로컬 인증 가능)
-  providers     AuthProvider[]
-  providerId    String?        @unique
-  avatarUrl     String?
-  
+  providers  AuthProvider[]
+  providerId String?        @unique
+  avatarUrl  String?
+
   // 로컬 인증 (어드민용)
-  password      String?        // bcrypt 해시
-  
-  isStatsPublic Boolean        @default(false)
-  role          UserRole       @default(USER)
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
+  password String? // bcrypt 해시
+
+  isStatsPublic Boolean  @default(false)
+  role          UserRole @default(USER)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   categories    Category[]
   memos         Memo[]
   refreshTokens RefreshToken[]
   calendarMemos CalendarMemo[]
-  devices       UserDevice[]   // 푸시 알림용 디바이스
+  devices       UserDevice[] // 푸시 알림용 디바이스
+  settings      UserSettings? // 사용자 설정
 
   @@index([providerId])
   @@index([email])
@@ -52,17 +53,17 @@ model User {
 
 // 사용자 디바이스 (푸시 알림용)
 model UserDevice {
-  id             String   @id @default(uuid())
-  expoPushToken  String   @unique  // Expo Push Token
-  deviceName     String?           // 기기 이름 (예: "iPhone 15 Pro")
-  platform       String?           // ios, android
-  
-  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId         String
-  
-  isActive       Boolean  @default(true)  // 토큰 유효 여부
-  createdAt      DateTime @default(now())
-  lastActiveAt   DateTime @updatedAt
+  id            String  @id @default(uuid())
+  expoPushToken String  @unique // Expo Push Token
+  deviceName    String? // 기기 이름 (예: "iPhone 15 Pro")
+  platform      String? // ios, android
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+
+  isActive     Boolean  @default(true) // 토큰 유효 여부
+  createdAt    DateTime @default(now())
+  lastActiveAt DateTime @updatedAt
 
   @@index([userId])
   @@index([expoPushToken])
@@ -72,7 +73,7 @@ model UserDevice {
 model Category {
   id        String          @id @default(uuid())
   name      String
-  color     String?         // UI 색상용
+  color     String? // UI 색상용
   sortOrder Int             @default(0)
   user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId    String
@@ -87,9 +88,9 @@ model Category {
 }
 
 model CategoryField {
-  id         String    @id @default(uuid())
-  name       String    // ex: 감독, 저자
-  category   Category  @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  id         String            @id @default(uuid())
+  name       String // ex: 감독, 저자
+  category   Category          @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   categoryId String
   memoFields MemoCustomField[]
 
@@ -99,21 +100,21 @@ model CategoryField {
 }
 
 model Memo {
-  id             String             @id @default(uuid())
-  title          String             // 필수
-  content        String?            // 본문 (optional)
-  rating         Decimal?           @db.Decimal(2,1) // 1.0~5.0, 0.5단위 (optional)
-  experienceDate DateTime?          // 경험 날짜 (optional)
+  id             String    @id @default(uuid())
+  title          String // 필수
+  content        String? // 본문 (optional)
+  rating         Decimal?  @db.Decimal(2, 1) // 1.0~5.0, 0.5단위 (optional)
+  experienceDate DateTime? // 경험 날짜 (optional)
 
-  user           User               @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId         String
-  category       Category?          @relation(fields: [categoryId], references: [id], onDelete: Cascade)
-  categoryId     String?
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId     String
+  category   Category? @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  categoryId String?
 
-  customFields   MemoCustomField[]
+  customFields MemoCustomField[]
 
-  createdAt      DateTime           @default(now())
-  updatedAt      DateTime           @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([userId])
   @@index([categoryId])
@@ -125,12 +126,12 @@ model Memo {
 }
 
 model MemoCustomField {
-  id              String         @id @default(uuid())
-  value           String         
+  id    String @id @default(uuid())
+  value String
 
-  memo            Memo           @relation(fields: [memoId], references: [id], onDelete: Cascade)
+  memo            Memo          @relation(fields: [memoId], references: [id], onDelete: Cascade)
   memoId          String
-  categoryField   CategoryField  @relation(fields: [categoryFieldId], references: [id], onDelete: Cascade)
+  categoryField   CategoryField @relation(fields: [categoryFieldId], references: [id], onDelete: Cascade)
   categoryFieldId String
 
   @@unique([memoId, categoryFieldId])
@@ -139,11 +140,11 @@ model MemoCustomField {
 }
 
 model RefreshToken {
-  id        String   @id @default(uuid())
-  token     String   @unique
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id        String    @id @default(uuid())
+  token     String    @unique
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId    String
-  createdAt DateTime @default(now())
+  createdAt DateTime  @default(now())
   expiresAt DateTime
   revokedAt DateTime?
 
@@ -180,24 +181,54 @@ enum NotificationTime {
 }
 
 model CalendarMemo {
-  id              String           @id @default(uuid())
-  title           String
-  startDate       DateTime         // 시작 날짜/시간
-  endDate         DateTime         // 끝 날짜/시간
-  isAllDay        Boolean          @default(false)  // 하루종일 여부
-  hasNotification Boolean          @default(false)
-  notifyBefore    NotificationTime? // 시작 날짜 기준 알림 시점
-  notificationSent Boolean         @default(false)  // 알림 발송 여부
+  id               String            @id @default(uuid())
+  title            String
+  startDate        DateTime // 시작 날짜/시간
+  endDate          DateTime // 끝 날짜/시간
+  isAllDay         Boolean           @default(false) // 하루종일 여부
+  hasNotification  Boolean           @default(false)
+  notifyBefore     NotificationTime? // 시작 날짜 기준 알림 시점
+  notificationSent Boolean           @default(false) // 알림 발송 여부
 
-  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId          String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
 
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([userId])
   @@index([startDate])
   @@index([userId, startDate])
-  @@index([hasNotification, notificationSent])  // 알림 조회용 인덱스
+  @@index([hasNotification, notificationSent]) // 알림 조회용 인덱스
   @@map("calendar_memos")
+}
+
+enum Theme {
+  light
+  dark
+  sepia
+  navy
+  forest
+  lavender
+}
+
+enum Language {
+  ko
+  en
+}
+
+model UserSettings {
+  id String @id @default(uuid())
+
+  theme        Theme    @default(light)
+  language     Language @default(ko)
+  notification Boolean  @default(true)
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String @unique
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("user_settings")
 }

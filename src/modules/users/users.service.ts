@@ -1,8 +1,9 @@
 import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
-import { UpdateUserDto } from './client/dto';
+import { UpdateUserDto, UpdateUserSettingsDto } from './client/dto';
 import { AdminUserQueryDto } from './admin/dto';
 import { UserRole } from '../../common/enums/permissions.enum';
+import { Theme, Language } from '@prisma/client';
 
 @Injectable()
 export class UsersService {
@@ -270,5 +271,56 @@ export class UsersService {
         role: true,
       },
     });
+  }
+
+  // 사용자 설정 메서드들
+  async getUserSettings(userId: string) {
+    let settings = await this.prisma.userSettings.findUnique({
+      where: { userId },
+    });
+
+    // 설정이 없으면 기본값으로 생성
+    if (!settings) {
+      settings = await this.prisma.userSettings.create({
+        data: {
+          userId,
+          theme: Theme.light,
+          language: Language.ko,
+          notification: true,
+        },
+      });
+    }
+
+    return {
+      theme: settings.theme,
+      language: settings.language,
+      notification: settings.notification,
+    };
+  }
+
+  async updateUserSettings(userId: string, updateDto: UpdateUserSettingsDto) {
+    const { theme, language, notification } = updateDto;
+
+    // upsert로 없으면 생성, 있으면 업데이트
+    const settings = await this.prisma.userSettings.upsert({
+      where: { userId },
+      create: {
+        userId,
+        theme: theme ?? Theme.light,
+        language: language ?? Language.ko,
+        notification: notification ?? true,
+      },
+      update: {
+        ...(theme !== undefined && { theme }),
+        ...(language !== undefined && { language }),
+        ...(notification !== undefined && { notification }),
+      },
+    });
+
+    return {
+      theme: settings.theme,
+      language: settings.language,
+      notification: settings.notification,
+    };
   }
 }

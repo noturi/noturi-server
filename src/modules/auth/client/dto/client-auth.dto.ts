@@ -96,3 +96,27 @@ export class AppleLoginDto {
   @IsString()
   fullName?: string;
 }
+
+export class RefreshTokenDto {
+  @ApiProperty({
+    description: '리프레시 토큰',
+    example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+  })
+  @IsString()
+  @IsNotEmpty()
+  refreshToken: string;
+}
+
+export class RefreshResponseDto {
+  @ApiProperty({
+    description: '인증 토큰',
+    example: {
+      accessToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+      refreshToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+    },
+  })
+  tokens: {
+    accessToken: string;
+    refreshToken: string;
+  };
+}
