@@ -1,8 +1,11 @@
 // src/categories/categories.service.ts
 import { HttpException, HttpStatus, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'prisma/prisma.service';
-import { CreateCategoryDto, ReorderCategoriesDto, UpdateCategoryDto } from './client/dto';
+import { AppErrorCode } from '../../common/errors/app-error-codes';
 import { PrismaErrorHandler } from '../../common/exceptions/prisma-error.handler';
+import { CreateCategoryDto, ReorderCategoriesDto, UpdateCategoryDto } from './client/dto';
+
+const MAX_CATEGORIES_PER_USER = 10;
 
 @Injectable()
 export class CategoriesService {
@@ -47,6 +50,23 @@ export class CategoriesService {
   }
 
   async create(userId: string, createCategoryDto: CreateCategoryDto) {
+    // 카테고리 개수 제한 체크
+    const categoryCount = await this.prisma.category.count({
+      where: { userId },
+    });
+
+    if (categoryCount >= MAX_CATEGORIES_PER_USER) {
+      throw new HttpException(
+        {
+          statusCode: HttpStatus.CONFLICT,
+          code: AppErrorCode.CATEGORY_LIMIT_EXCEEDED,
+          message: `카테고리는 최대 ${MAX_CATEGORIES_PER_USER}개까지 생성할 수 있습니다`,
+          details: { currentCount: categoryCount, maxCount: MAX_CATEGORIES_PER_USER },
+        },
+        HttpStatus.CONFLICT,
+      );
+    }
+
     try {
       return await this.prisma.category.create({
         data: {
