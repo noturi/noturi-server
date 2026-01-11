@@ -15,6 +15,9 @@ export enum Permission {
   VIEW_ANALYTICS = 'view:analytics',
   READ_DASHBOARD = 'read:dashboard',
 
+  // 알림 관리
+  MANAGE_NOTIFICATIONS = 'manage:notifications',
+
   // 어드민 관리 (슈퍼어드민만)
   CREATE_ADMIN = 'create:admin',
   DELETE_ADMIN = 'delete:admin',
@@ -52,6 +55,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     Permission.MANAGE_SYSTEM,
     Permission.VIEW_ANALYTICS,
     Permission.READ_DASHBOARD,
+    Permission.MANAGE_NOTIFICATIONS,
     Permission.CREATE_ADMIN,
     Permission.DELETE_ADMIN,
     Permission.MANAGE_PERMISSIONS,

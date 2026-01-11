@@ -232,3 +232,55 @@ model UserSettings {
 
   @@map("user_settings")
 }
+
+// 어드민 푸시 알림
+model AdminNotification {
+  id    String @id @default(uuid())
+  title String // 알림 제목
+  body  String // 알림 내용
+  data  Json?  // 추가 데이터 (딥링크 등)
+
+  // 대상 유저 ID 배열
+  targetUserIds String[]
+
+  // 예약 설정
+  scheduledAt   DateTime? // 예약 발송 시간 (null이면 즉시 발송)
+  scheduledTime String?   // 반복시 매일 발송할 시간 (HH:mm 형식)
+
+  // 반복 설정
+  isRepeat     Boolean   @default(false)
+  repeatDays   Int[]     // 반복 요일 (0=일, 1=월, 2=화, 3=수, 4=목, 5=금, 6=토)
+  repeatEndAt  DateTime? // 반복 종료일
+
+  // 상태
+  isActive   Boolean   @default(true) // 활성화 여부 (반복 알림 중지용)
+  lastSentAt DateTime? // 마지막 발송 시간
+
+  // 발송 로그
+  logs AdminNotificationLog[]
+
+  // 메타
+  createdBy String   // 생성한 어드민 ID
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([isActive, scheduledAt])
+  @@index([isActive, isRepeat])
+  @@map("admin_notifications")
+}
+
+// 어드민 알림 발송 로그
+model AdminNotificationLog {
+  id             String            @id @default(uuid())
+  notification   AdminNotification @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+  notificationId String
+
+  sentAt       DateTime @default(now())
+  successCount Int      @default(0)
+  failCount    Int      @default(0)
+  details      Json?    // 상세 결과 (실패한 토큰 등)
+
+  @@index([notificationId])
+  @@index([sentAt])
+  @@map("admin_notification_logs")
+}
