@@ -1,6 +1,18 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { UserRole } from '../../../../common/enums/permissions.enum';
 
+// 사용자 설정 DTO (간단 버전)
+export class AdminUserSettingsSimpleDto {
+  @ApiProperty({ example: 'light', enum: ['light', 'dark', 'sepia', 'navy', 'forest', 'lavender'] })
+  theme: string;
+
+  @ApiProperty({ example: 'ko', enum: ['ko', 'en'] })
+  language: string;
+
+  @ApiProperty({ example: true })
+  notification: boolean;
+}
+
 export class AdminUserResponseDto {
   @ApiProperty({ example: '550e8400-e29b-41d4-a716-446655440000', description: '사용자 ID' })
   id: string;
@@ -26,11 +38,20 @@ export class AdminUserResponseDto {
   @ApiProperty({ example: 'USER', description: '사용자 역할', enum: UserRole })
   role: UserRole;
 
+  @ApiProperty({ type: AdminUserSettingsSimpleDto, description: '사용자 설정', required: false })
+  settings?: AdminUserSettingsSimpleDto;
+
   @ApiProperty({ example: 125, description: '총 메모 개수' })
   memoCount: number;
 
   @ApiProperty({ example: 5, description: '카테고리 개수' })
   categoryCount: number;
+
+  @ApiProperty({ example: 30, description: '캘린더 메모 개수' })
+  calendarMemoCount: number;
+
+  @ApiProperty({ example: 2, description: '등록된 디바이스 개수' })
+  deviceCount: number;
 
   @ApiProperty({ example: '2024-01-15T10:30:00.000Z', description: '계정 생성일' })
   createdAt: Date;

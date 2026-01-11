@@ -214,10 +214,19 @@ export class UsersService {
         role: true,
         createdAt: true,
         updatedAt: true,
+        settings: {
+          select: {
+            theme: true,
+            language: true,
+            notification: true,
+          },
+        },
         _count: {
           select: {
             memos: true,
             categories: true,
+            calendarMemos: true,
+            devices: true,
           },
         },
       },
@@ -231,6 +240,8 @@ export class UsersService {
       ...user,
       memoCount: user._count.memos,
       categoryCount: user._count.categories,
+      calendarMemoCount: user._count.calendarMemos,
+      deviceCount: user._count.devices,
     };
   }
 
