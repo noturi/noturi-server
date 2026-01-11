@@ -1,7 +1,7 @@
 import { Controller, Get, Delete, Param, Query, UseGuards, HttpCode, HttpStatus } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { UsersService } from '../users.service';
-import { AdminUserQueryDto, AdminUserListResponseDto, AdminUserResponseDto, AdminUserDetailResponseDto } from './dto';
+import { AdminUserQueryDto, AdminUserListResponseDto, AdminUserResponseDto } from './dto';
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../../common/guards/permissions.guard';
 import { RequirePermissions } from '../../../common/decorators/permissions.decorator';
@@ -32,22 +32,12 @@ export class UsersAdminController {
 
   @Get(':id')
   @RequirePermissions(Permission.READ_USERS)
-  @ApiOperation({ summary: '사용자 상세 조회 (어드민)' })
+  @ApiOperation({ summary: '사용자 상세 조회 (어드민) - 카테고리, 메모, 캘린더, 설정, 디바이스 포함' })
   @ApiResponse({ status: 200, description: '조회 성공', type: AdminUserResponseDto })
   @ApiResponse({ status: 404, description: '사용자 없음', type: ErrorResponseDto })
   @ApiResponse({ status: 403, description: '권한 없음', type: ErrorResponseDto })
   async getUserById(@Param('id') id: string) {
     return this.usersService.getUserByIdForAdmin(id);
-  }
-
-  @Get(':id/detail')
-  @RequirePermissions(Permission.READ_USERS)
-  @ApiOperation({ summary: '사용자 전체 상세 정보 조회 (어드민) - 카테고리, 메모, 캘린더, 설정, 디바이스 포함' })
-  @ApiResponse({ status: 200, description: '조회 성공', type: AdminUserDetailResponseDto })
-  @ApiResponse({ status: 404, description: '사용자 없음', type: ErrorResponseDto })
-  @ApiResponse({ status: 403, description: '권한 없음', type: ErrorResponseDto })
-  async getUserDetail(@Param('id') id: string) {
-    return this.usersService.getUserDetailForAdmin(id);
   }
 
   @Delete(':id')

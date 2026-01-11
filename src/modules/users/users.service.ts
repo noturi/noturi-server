@@ -214,51 +214,6 @@ export class UsersService {
         role: true,
         createdAt: true,
         updatedAt: true,
-        settings: {
-          select: {
-            theme: true,
-            language: true,
-            notification: true,
-          },
-        },
-        _count: {
-          select: {
-            memos: true,
-            categories: true,
-            calendarMemos: true,
-            devices: true,
-          },
-        },
-      },
-    });
-
-    if (!user) {
-      throw new NotFoundException('사용자를 찾을 수 없습니다');
-    }
-
-    return {
-      ...user,
-      memoCount: user._count.memos,
-      categoryCount: user._count.categories,
-      calendarMemoCount: user._count.calendarMemos,
-      deviceCount: user._count.devices,
-    };
-  }
-
-  async getUserDetailForAdmin(userId: string) {
-    const user = await this.prisma.user.findUnique({
-      where: { id: userId },
-      select: {
-        id: true,
-        nickname: true,
-        email: true,
-        name: true,
-        avatarUrl: true,
-        providers: true,
-        isStatsPublic: true,
-        role: true,
-        createdAt: true,
-        updatedAt: true,
         // 카테고리 (필드 포함)
         categories: {
           select: {
@@ -281,7 +236,7 @@ export class UsersService {
           },
           orderBy: { sortOrder: 'asc' },
         },
-        // 최근 평가 메모 (최신 50개)
+        // 평가 메모
         memos: {
           select: {
             id: true,
@@ -308,9 +263,8 @@ export class UsersService {
             },
           },
           orderBy: { createdAt: 'desc' },
-          take: 50,
         },
-        // 캘린더 메모 (최신 50개)
+        // 캘린더 메모
         calendarMemos: {
           select: {
             id: true,
@@ -324,7 +278,6 @@ export class UsersService {
             createdAt: true,
           },
           orderBy: { startDate: 'desc' },
-          take: 50,
         },
         // 사용자 설정
         settings: {
@@ -347,15 +300,6 @@ export class UsersService {
           },
           orderBy: { lastActiveAt: 'desc' },
         },
-        // 카운트
-        _count: {
-          select: {
-            memos: true,
-            categories: true,
-            calendarMemos: true,
-            devices: true,
-          },
-        },
       },
     });
 
@@ -363,9 +307,7 @@ export class UsersService {
       throw new NotFoundException('사용자를 찾을 수 없습니다');
     }
 
-    // 응답 형식 변환
     return {
-      // 기본 정보
       id: user.id,
       nickname: user.nickname,
       email: user.email,
@@ -376,12 +318,7 @@ export class UsersService {
       role: user.role,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
-      // 통계
-      memoCount: user._count.memos,
-      categoryCount: user._count.categories,
-      calendarMemoCount: user._count.calendarMemos,
-      deviceCount: user._count.devices,
-      // 카테고리
+      settings: user.settings,
       categories: user.categories.map((cat) => ({
         id: cat.id,
         name: cat.name,
@@ -391,8 +328,7 @@ export class UsersService {
         memoCount: cat._count.memos,
         createdAt: cat.createdAt,
       })),
-      // 최근 메모
-      recentMemos: user.memos.map((memo) => ({
+      memos: user.memos.map((memo) => ({
         id: memo.id,
         title: memo.title,
         content: memo.content,
@@ -406,11 +342,7 @@ export class UsersService {
         createdAt: memo.createdAt,
         updatedAt: memo.updatedAt,
       })),
-      // 캘린더 메모
       calendarMemos: user.calendarMemos,
-      // 설정
-      settings: user.settings,
-      // 디바이스
       devices: user.devices,
     };
   }
