@@ -3,11 +3,7 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../../../prisma/prisma.service';
 import { NotificationsService } from '../notifications.service';
-import {
-  CreateAdminNotificationDto,
-  UpdateAdminNotificationDto,
-  AdminNotificationQueryDto,
-} from './dto';
+import { CreateAdminNotificationDto, UpdateAdminNotificationDto, AdminNotificationQueryDto } from './dto';
 
 @Injectable()
 export class AdminNotificationsService {
@@ -240,9 +236,7 @@ export class AdminNotificationsService {
       data: { lastSentAt: new Date() },
     });
 
-    this.logger.log(
-      `어드민 알림 발송 완료 [${notificationId}]: 성공 ${successCount}, 실패 ${failCount}`,
-    );
+    this.logger.log(`어드민 알림 발송 완료 [${notificationId}]: 성공 ${successCount}, 실패 ${failCount}`);
 
     return {
       success: failCount === 0,
@@ -308,8 +302,26 @@ export class AdminNotificationsService {
    * 반복 알림 처리
    */
   private async processRepeatNotifications(now: Date) {
-    const currentDay = now.getDay(); // 0=일, 1=월, ..., 6=토
-    const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+    // 서버가 UTC로 동작하므로 한국 시간대(KST, UTC+9)로 변환
+    const koreaTime = new Date(now.getTime() + 9 * 60 * 60 * 1000);
+    const currentDay = koreaTime.getUTCDay(); // 0=일, 1=월, ..., 6=토
+    const currentTime = `${String(koreaTime.getUTCHours()).padStart(2, '0')}:${String(koreaTime.getUTCMinutes()).padStart(2, '0')}`;
+
+    this.logger.debug(
+      `반복 알림 체크 - UTC: ${now.toISOString()}, 한국시간: ${koreaTime.toISOString()}, 요일: ${currentDay}, 시간: ${currentTime}`,
+    );
+
+    // 디버깅: 모든 활성 반복 알림 조회
+    const allRepeatNotifications = await this.prisma.adminNotification.findMany({
+      where: {
+        isActive: true,
+        isRepeat: true,
+      },
+    });
+
+    this.logger.debug(
+      `활성 반복 알림 목록: ${allRepeatNotifications.map((n) => `[id=${n.id}, scheduledTime=${n.scheduledTime}, repeatDays=${JSON.stringify(n.repeatDays)}]`).join(', ') || '없음'}`,
+    );
 
     const repeatNotifications = await this.prisma.adminNotification.findMany({
       where: {
@@ -321,16 +333,22 @@ export class AdminNotificationsService {
       },
     });
 
-    for (const notification of repeatNotifications) {
-      // 오늘 이미 발송했는지 확인
-      const todayStart = new Date(now);
-      todayStart.setHours(0, 0, 0, 0);
+    this.logger.debug(`조건에 맞는 반복 알림 수: ${repeatNotifications.length}`);
 
-      const alreadySentToday = notification.lastSentAt && notification.lastSentAt >= todayStart;
+    for (const notification of repeatNotifications) {
+      // 오늘 이미 발송했는지 확인 (한국 시간 기준 자정)
+      const todayStartKorea = new Date(koreaTime);
+      todayStartKorea.setUTCHours(0, 0, 0, 0);
+      // 한국 자정을 UTC로 변환 (한국 자정 = UTC 15:00 전날)
+      const todayStartUTC = new Date(todayStartKorea.getTime() - 9 * 60 * 60 * 1000);
+
+      const alreadySentToday = notification.lastSentAt && notification.lastSentAt >= todayStartUTC;
 
       if (!alreadySentToday) {
-        this.logger.log(`반복 알림 발송: ${notification.id}`);
+        this.logger.log(`반복 알림 발송: ${notification.id} (한국시간: ${currentTime})`);
         await this.sendNotification(notification.id);
+      } else {
+        this.logger.debug(`반복 알림 ${notification.id}은 오늘 이미 발송됨 (lastSentAt: ${notification.lastSentAt})`);
       }
     }
 
