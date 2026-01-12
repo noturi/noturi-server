@@ -18,6 +18,21 @@ export class AdminNotificationsService {
    * 어드민 알림 생성
    */
   async create(dto: CreateAdminNotificationDto, adminId: string) {
+    // 즉시 발송 (scheduledAt이 없고 반복 아님) - DB 기록 없이 바로 발송
+    if (!dto.scheduledAt && !dto.isRepeat) {
+      const result = await this.sendImmediateNotification(dto);
+      return {
+        id: null,
+        title: dto.title,
+        body: dto.body,
+        data: dto.data,
+        targetUserIds: dto.targetUserIds,
+        targetUserCount: dto.targetUserIds.length,
+        sendResult: result,
+      };
+    }
+
+    // 예약 또는 반복 알림 - DB에 저장
     const notification = await this.prisma.adminNotification.create({
       data: {
         title: dto.title,
@@ -33,19 +48,48 @@ export class AdminNotificationsService {
       },
     });
 
-    // 즉시 발송 (scheduledAt이 없으면)
-    if (!dto.scheduledAt && !dto.isRepeat) {
-      const result = await this.sendNotification(notification.id);
-      return {
-        ...notification,
-        targetUserCount: dto.targetUserIds.length,
-        sendResult: result,
-      };
-    }
-
     return {
       ...notification,
       targetUserCount: dto.targetUserIds.length,
+    };
+  }
+
+  /**
+   * 즉시 발송 (DB 기록 없이)
+   */
+  private async sendImmediateNotification(dto: CreateAdminNotificationDto) {
+    const { title, body, data, targetUserIds } = dto;
+
+    let successCount = 0;
+    let failCount = 0;
+
+    for (const userId of targetUserIds) {
+      try {
+        const tickets = await this.notificationsService.sendPushToUser(
+          userId,
+          title,
+          body,
+          data,
+        );
+
+        successCount += tickets.filter((t) => t.status === 'ok').length;
+        failCount += tickets.filter((t) => t.status === 'error').length;
+      } catch (error) {
+        failCount++;
+        this.logger.error(`사용자 ${userId}에게 알림 발송 실패:`, error);
+      }
+    }
+
+    this.logger.log(`즉시 알림 발송 완료: 성공 ${successCount}, 실패 ${failCount}`);
+
+    return {
+      success: failCount === 0,
+      successCount,
+      failCount,
+      message:
+        failCount === 0
+          ? '알림이 성공적으로 발송되었습니다.'
+          : `알림 발송 완료 (성공: ${successCount}, 실패: ${failCount})`,
     };
   }
 

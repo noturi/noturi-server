@@ -12,6 +12,13 @@ export class ClientAuthService {
     private readonly jwtService: JwtService,
   ) {}
 
+  // 허용된 Google OAuth Client ID 목록
+  private readonly allowedGoogleAudiences = [
+    process.env.GOOGLE_IOS_CLIENT_ID,
+    process.env.GOOGLE_ANDROID_CLIENT_ID,
+    process.env.GOOGLE_WEB_CLIENT_ID,
+  ].filter(Boolean);
+
   async googleNativeLogin(googleLoginDto: GoogleNativeLoginDto) {
     try {
       // 네이티브 앱에서 이미 검증된 토큰을 받으므로 디코드만 진행
@@ -19,6 +26,14 @@ export class ClientAuthService {
 
       if (!decodedToken) {
         throw new UnauthorizedException('유효하지 않은 구글 토큰입니다.');
+      }
+
+      // audience(aud) 검증 - Android는 Web Client ID 사용
+      const tokenAudience = decodedToken.aud;
+      if (this.allowedGoogleAudiences.length > 0 && !this.allowedGoogleAudiences.includes(tokenAudience)) {
+        console.log('Invalid audience:', tokenAudience);
+        console.log('Allowed audiences:', this.allowedGoogleAudiences);
+        throw new UnauthorizedException('유효하지 않은 구글 클라이언트입니다.');
       }
 
       const { sub: googleId, email, name, picture } = decodedToken;
