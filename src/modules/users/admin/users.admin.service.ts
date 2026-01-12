@@ -8,7 +8,7 @@ export class UsersAdminService {
   constructor(private readonly prisma: PrismaService) {}
 
   async getAllUsers(queryDto: AdminUserQueryDto) {
-    const { email, role, page = 1, limit = 20, sort = [], createdAt } = queryDto;
+    const { email, role, page = 1, limit = 20, sort = [], createdAt, notificationEnabled } = queryDto;
 
     const where: any = {
       ...(email && {
@@ -19,6 +19,11 @@ export class UsersAdminService {
         createdAt: {
           ...(createdAt.start && { gte: createdAt.start }),
           ...(createdAt.end && { lte: createdAt.end }),
+        },
+      }),
+      ...(notificationEnabled !== undefined && {
+        settings: {
+          notification: notificationEnabled,
         },
       }),
     };

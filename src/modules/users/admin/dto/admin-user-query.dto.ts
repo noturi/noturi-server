@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsOptional, IsString, IsInt, Min, IsArray } from 'class-validator';
+import { IsOptional, IsString, IsInt, Min, IsArray, IsBoolean } from 'class-validator';
 import { Transform } from 'class-transformer';
 import { UserRole } from '../../../../common/enums/permissions.enum';
 
@@ -102,4 +102,18 @@ export class AdminUserQueryDto {
     return undefined;
   })
   createdAt?: { start?: Date; end?: Date };
+
+  @ApiProperty({
+    example: true,
+    description: '알림 허용 여부로 필터링 (true: 허용, false: 거부)',
+    required: false,
+  })
+  @IsOptional()
+  @Transform(({ value }) => {
+    if (value === 'true') return true;
+    if (value === 'false') return false;
+    return value;
+  })
+  @IsBoolean()
+  notificationEnabled?: boolean;
 }
