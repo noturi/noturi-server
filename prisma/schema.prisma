@@ -284,3 +284,21 @@ model AdminNotificationLog {
   @@index([sentAt])
   @@map("admin_notification_logs")
 }
+
+// 앱 버전 관리
+model AppVersion {
+  id String @id @default(uuid())
+
+  iosVersion        String // iOS 최신 버전
+  iosMinVersion     String // iOS 최소 지원 버전 (이하면 강제 업데이트)
+  iosStoreUrl       String // 앱스토어 URL
+
+  androidVersion    String // Android 최신 버전
+  androidMinVersion String // Android 최소 지원 버전
+  androidStoreUrl   String // 플레이스토어 URL
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("app_versions")
+}

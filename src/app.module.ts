@@ -11,6 +11,7 @@ import { UsersModule } from './modules/users/users.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { CalendarMemosModule } from './modules/calendar-memos/calendar-memos.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
+import { AppVersionModule } from './modules/app-version/app-version.module';
 import { LoggerMiddleware } from './common/middlewares/logger.middleware';
 import { PrismaModule } from '../prisma/prisma.module';
 
@@ -28,7 +29,8 @@ import { PrismaModule } from '../prisma/prisma.module';
     UsersModule,
     DashboardModule,
     CalendarMemosModule,
-    NotificationsModule,  // 푸시 알림 모듈
+    NotificationsModule,
+    AppVersionModule,
   ],
   controllers: [AppController],
   providers: [AppService],
