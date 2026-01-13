@@ -2,6 +2,8 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { UpdateAppVersionDto } from './admin/dto/update-app-version.dto';
 
+const FIXED_APP_VERSION = '1.1.1';
+
 @Injectable()
 export class AppVersionService {
   constructor(private readonly prisma: PrismaService) {}
@@ -17,13 +19,13 @@ export class AppVersionService {
     if (!appVersion) {
       return {
         ios: {
-          latestVersion: '1.0.0',
-          minVersion: '1.0.0',
+          latestVersion: FIXED_APP_VERSION,
+          minVersion: FIXED_APP_VERSION,
           storeUrl: '',
         },
         android: {
-          latestVersion: '1.0.0',
-          minVersion: '1.0.0',
+          latestVersion: FIXED_APP_VERSION,
+          minVersion: FIXED_APP_VERSION,
           storeUrl: '',
         },
       };
@@ -31,14 +33,14 @@ export class AppVersionService {
 
     return {
       ios: {
-        latestVersion: appVersion.iosVersion,
-        minVersion: appVersion.iosMinVersion,
-        storeUrl: appVersion.iosStoreUrl,
+        latestVersion: FIXED_APP_VERSION,
+        minVersion: FIXED_APP_VERSION,
+        storeUrl: appVersion?.iosStoreUrl ?? '',
       },
       android: {
-        latestVersion: appVersion.androidVersion,
-        minVersion: appVersion.androidMinVersion,
-        storeUrl: appVersion.androidStoreUrl,
+        latestVersion: FIXED_APP_VERSION,
+        minVersion: FIXED_APP_VERSION,
+        storeUrl: appVersion?.androidStoreUrl ?? '',
       },
     };
   }
