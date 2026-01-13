@@ -32,12 +32,18 @@ export class AdminNotificationsService {
       };
     }
 
+    // linkUrl이 있으면 data에 병합
+    const notificationData = {
+      ...dto.data,
+      ...(dto.linkUrl && { linkUrl: dto.linkUrl }),
+    };
+
     // 예약 또는 반복 알림 - DB에 저장
     const notification = await this.prisma.adminNotification.create({
       data: {
         title: dto.title,
         body: dto.body,
-        data: dto.data,
+        data: Object.keys(notificationData).length > 0 ? notificationData : undefined,
         targetUserIds: dto.targetUserIds,
         scheduledAt: dto.scheduledAt ? new Date(dto.scheduledAt) : null,
         scheduledTime: dto.scheduledTime,
@@ -58,7 +64,13 @@ export class AdminNotificationsService {
    * 즉시 발송 (DB 기록 없이)
    */
   private async sendImmediateNotification(dto: CreateAdminNotificationDto) {
-    const { title, body, data, targetUserIds } = dto;
+    const { title, body, data, linkUrl, targetUserIds } = dto;
+
+    // linkUrl이 있으면 data에 병합
+    const notificationData = {
+      ...data,
+      ...(linkUrl && { linkUrl }),
+    };
 
     let successCount = 0;
     let failCount = 0;
@@ -69,7 +81,7 @@ export class AdminNotificationsService {
           userId,
           title,
           body,
-          data,
+          Object.keys(notificationData).length > 0 ? notificationData : undefined,
         );
 
         successCount += tickets.filter((t) => t.status === 'ok').length;
@@ -164,12 +176,22 @@ export class AdminNotificationsService {
       throw new NotFoundException('알림을 찾을 수 없습니다');
     }
 
+    // data 또는 linkUrl이 변경되면 병합
+    let updatedData = undefined;
+    if (dto.data !== undefined || dto.linkUrl !== undefined) {
+      const existingData = (existing.data as Record<string, any>) || {};
+      updatedData = {
+        ...(dto.data !== undefined ? dto.data : existingData),
+        ...(dto.linkUrl !== undefined && { linkUrl: dto.linkUrl }),
+      };
+    }
+
     const updated = await this.prisma.adminNotification.update({
       where: { id },
       data: {
         ...(dto.title !== undefined && { title: dto.title }),
         ...(dto.body !== undefined && { body: dto.body }),
-        ...(dto.data !== undefined && { data: dto.data }),
+        ...(updatedData !== undefined && { data: updatedData }),
         ...(dto.targetUserIds !== undefined && { targetUserIds: dto.targetUserIds }),
         ...(dto.scheduledAt !== undefined && {
           scheduledAt: dto.scheduledAt ? new Date(dto.scheduledAt) : null,

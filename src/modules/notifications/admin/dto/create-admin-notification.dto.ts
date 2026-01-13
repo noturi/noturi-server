@@ -32,6 +32,15 @@ export class CreateAdminNotificationDto {
   data?: Record<string, any>;
 
   @ApiProperty({
+    example: '/memo/123',
+    description: '알림 클릭 시 이동할 경로 (직접 입력)',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  linkUrl?: string;
+
+  @ApiProperty({
     example: ['user-id-1', 'user-id-2'],
     description: '대상 유저 ID 배열',
   })
