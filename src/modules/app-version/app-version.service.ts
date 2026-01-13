@@ -3,6 +3,7 @@ import { PrismaService } from '../../../prisma/prisma.service';
 import { UpdateAppVersionDto } from './admin/dto/update-app-version.dto';
 
 const FIXED_APP_VERSION = '1.1.1';
+const IOS_STORE_URL = 'https://apps.apple.com/us/app/noturi/id6752212896';
 
 @Injectable()
 export class AppVersionService {
@@ -21,7 +22,7 @@ export class AppVersionService {
         ios: {
           latestVersion: FIXED_APP_VERSION,
           minVersion: FIXED_APP_VERSION,
-          storeUrl: '',
+          storeUrl: IOS_STORE_URL,
         },
         android: {
           latestVersion: FIXED_APP_VERSION,
@@ -35,7 +36,7 @@ export class AppVersionService {
       ios: {
         latestVersion: FIXED_APP_VERSION,
         minVersion: FIXED_APP_VERSION,
-        storeUrl: appVersion?.iosStoreUrl ?? '',
+        storeUrl: appVersion?.iosStoreUrl || IOS_STORE_URL,
       },
       android: {
         latestVersion: FIXED_APP_VERSION,
