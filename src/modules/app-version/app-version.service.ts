@@ -1,9 +1,9 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { UpdateAppVersionDto } from './admin/dto/update-app-version.dto';
 
 const FIXED_APP_VERSION = '1.1.1';
-const IOS_STORE_URL = 'https://apps.apple.com/us/app/noturi/id6752212896';
+const IOS_STORE_URL = 'itms-apps://apps.apple.com/app/noturi/id6752212896';
 
 @Injectable()
 export class AppVersionService {
