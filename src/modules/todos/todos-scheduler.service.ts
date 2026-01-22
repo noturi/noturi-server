@@ -17,7 +17,7 @@ export class TodosSchedulerService {
   /**
    * 매일 자정에 7일치 반복 투두 인스턴스 생성
    */
-  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
+  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT, { name: 'todo-generate-daily-instances' })
   async generateDailyInstances() {
     this.logger.log('반복 투두 인스턴스 생성 시작');
 
@@ -53,7 +53,7 @@ export class TodosSchedulerService {
   /**
    * 매일 자정에 모든 사용자의 연속 달성일(streak) 업데이트
    */
-  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
+  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT, { name: 'todo-update-all-streaks' })
   async updateAllStreaks() {
     this.logger.log('연속 달성일 업데이트 시작');
 
@@ -79,7 +79,7 @@ export class TodosSchedulerService {
   /**
    * 만료된 템플릿 비활성화 (종료일이 지난 템플릿)
    */
-  @Cron(CronExpression.EVERY_DAY_AT_1AM)
+  @Cron(CronExpression.EVERY_DAY_AT_1AM, { name: 'todo-deactivate-expired-templates' })
   async deactivateExpiredTemplates() {
     this.logger.log('만료된 템플릿 비활성화 시작');
 
