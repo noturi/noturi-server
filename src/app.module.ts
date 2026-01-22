@@ -12,6 +12,7 @@ import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { CalendarMemosModule } from './modules/calendar-memos/calendar-memos.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { AppVersionModule } from './modules/app-version/app-version.module';
+import { TodosModule } from './modules/todos/todos.module';
 import { LoggerMiddleware } from './common/middlewares/logger.middleware';
 import { PrismaModule } from '../prisma/prisma.module';
 
@@ -31,6 +32,7 @@ import { PrismaModule } from '../prisma/prisma.module';
     CalendarMemosModule,
     NotificationsModule,
     AppVersionModule,
+    TodosModule,
   ],
   controllers: [AppController],
   providers: [AppService],

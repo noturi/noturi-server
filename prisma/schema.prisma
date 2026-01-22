@@ -14,6 +14,13 @@ enum AuthProvider {
   APPLE
 }
 
+enum RecurrenceType {
+  NONE
+  DAILY
+  WEEKLY
+  MONTHLY
+}
+
 enum UserRole {
   USER
   ADMIN
@@ -39,12 +46,20 @@ model User {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
+  // Todo 통계
+  totalTodos     Int @default(0) // 전체 투두 수
+  completedTodos Int @default(0) // 완료한 투두 수
+  currentStreak  Int @default(0) // 현재 연속 달성일
+  bestStreak     Int @default(0) // 최고 연속 달성일
+
   categories    Category[]
   memos         Memo[]
   refreshTokens RefreshToken[]
   calendarMemos CalendarMemo[]
   devices       UserDevice[] // 푸시 알림용 디바이스
   settings      UserSettings? // 사용자 설정
+  todoTemplates TodoTemplate[]
+  todoInstances TodoInstance[]
 
   @@index([providerId])
   @@index([email])
@@ -301,4 +316,53 @@ model AppVersion {
   updatedAt DateTime @updatedAt
 
   @@map("app_versions")
+}
+
+// 반복 투두 템플릿
+model TodoTemplate {
+  id             String         @id @default(uuid())
+  title          String
+  description    String?
+  recurrenceType RecurrenceType @default(NONE) // NONE, DAILY, WEEKLY, MONTHLY
+  recurrenceDays Int[] // WEEKLY: 요일(0~6), MONTHLY: 날짜(1~31)
+  startDate      DateTime // 시작 날짜
+  endDate        DateTime? // 종료 날짜 (null = 무기한)
+  isActive       Boolean        @default(true)
+
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  instances TodoInstance[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([isActive])
+  @@index([userId, isActive])
+  @@map("todo_templates")
+}
+
+// 날짜별 투두 인스턴스
+model TodoInstance {
+  id          String    @id @default(uuid())
+  title       String
+  description String?
+  date        DateTime // 해당 날짜 (00:00:00)
+  isCompleted Boolean   @default(false)
+  completedAt DateTime?
+
+  template   TodoTemplate? @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  templateId String? // null이면 일회성 투두
+  user       User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId     String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([templateId, date]) // 같은 템플릿에서 같은 날짜 중복 방지
+  @@index([userId])
+  @@index([date])
+  @@index([userId, date])
+  @@index([isCompleted])
+  @@map("todo_instances")
 }
