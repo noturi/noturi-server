@@ -4,6 +4,8 @@ import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '../../../../prisma/prisma.service';
 import { AdminLoginDto, AdminRegisterDto } from './dto';
 
+const BCRYPT_SALT_ROUNDS = 12;
+
 @Injectable()
 export class AdminAuthService {
   constructor(
@@ -22,7 +24,7 @@ export class AdminAuthService {
     }
 
     // 패스워드 해시
-    const hashedPassword = await bcrypt.hash(data.password, 12);
+    const hashedPassword = await bcrypt.hash(data.password, BCRYPT_SALT_ROUNDS);
 
     // 어드민 계정 생성
     const admin = await this.prisma.user.create({

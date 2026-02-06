@@ -1,5 +1,6 @@
 import { Controller, Post, Body, HttpCode, HttpStatus } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import { AdminAuthService } from './auth.admin.service';
 import { AdminLoginDto, AdminRegisterDto } from './dto';
 import { AuthErrorResponseDto } from './dto/auth-error-response.dto';
@@ -19,6 +20,7 @@ export class AuthAdminController {
 
   @Post('login')
   @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { ttl: 60000, limit: 5 } })
   @ApiOperation({ summary: '어드민 로그인' })
   @ApiResponse({ status: 200, description: '로그인 성공' })
   @ApiResponse({ status: 401, description: '인증 실패', type: AuthErrorResponseDto })

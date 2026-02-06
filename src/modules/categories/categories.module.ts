@@ -7,6 +7,6 @@ import { AdminService } from './admin/admin.service';
 @Module({
   controllers: [CategoriesClientController, CategoriesAdminController],
   providers: [CategoriesService, AdminService],
-  exports: [CategoriesService],
+  exports: [CategoriesService, AdminService],
 })
 export class CategoriesModule {}

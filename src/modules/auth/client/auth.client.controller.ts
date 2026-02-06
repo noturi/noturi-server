@@ -1,5 +1,6 @@
 import { Controller, Post, Body, HttpCode, HttpStatus } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import { ClientAuthService } from './auth.client.service';
 import {
   GoogleNativeLoginDto,
@@ -17,6 +18,7 @@ export class AuthClientController {
 
   @Post('google/native')
   @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { ttl: 60000, limit: 5 } })
   @ApiOperation({ summary: '구글 네이티브 로그인 (client/auth)' })
   @ApiResponse({ status: 200, description: '로그인 성공', type: LoginResponseDto })
   @ApiResponse({ status: 401, description: '인증 실패', type: ErrorResponseDto })
@@ -26,6 +28,7 @@ export class AuthClientController {
 
   @Post('apple/native')
   @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { ttl: 60000, limit: 5 } })
   @ApiOperation({ summary: '애플 네이티브 로그인 (client/auth)' })
   @ApiResponse({ status: 200, description: '로그인 성공', type: LoginResponseDto })
   @ApiResponse({ status: 401, description: '인증 실패', type: ErrorResponseDto })
@@ -42,4 +45,3 @@ export class AuthClientController {
     return this.clientAuthService.refreshToken(refreshTokenDto.refreshToken);
   }
 }
-

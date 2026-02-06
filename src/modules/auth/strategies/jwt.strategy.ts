@@ -3,6 +3,8 @@ import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { PrismaService } from '../../../../prisma/prisma.service';
+import { USER_PROFILE_SELECT } from '../../../common/constants/prisma-selects';
+import { ERROR_MESSAGES } from '../../../common/constants/error-messages';
 
 export interface JwtPayload {
   sub: string;
@@ -28,20 +30,11 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   async validate(payload: JwtPayload) {
     const user = await this.prisma.user.findUnique({
       where: { id: payload.sub },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        nickname: true,
-        avatarUrl: true,
-        isStatsPublic: true,
-        role: true,
-        createdAt: true,
-      },
+      select: USER_PROFILE_SELECT,
     });
 
     if (!user) {
-      throw new UnauthorizedException('사용자를 찾을 수 없습니다');
+      throw new UnauthorizedException(ERROR_MESSAGES.USER_NOT_FOUND);
     }
 
     return user;
