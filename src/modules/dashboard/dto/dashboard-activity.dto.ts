@@ -1,8 +1,9 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { ActivityType } from '../../../common/enums/activity-type.enum';
 
 export class DashboardActivityDto {
-  @ApiProperty({ description: '활동 유형', example: 'user_registration' })
-  type: 'user_registration' | 'category_creation';
+  @ApiProperty({ description: '활동 유형', enum: ActivityType, example: ActivityType.MEMO_CREATION })
+  type: ActivityType;
 
   @ApiProperty({ description: '활동 제목', example: '새로운 사용자 등록' })
   title: string;
