@@ -98,6 +98,71 @@ export class UsersAdminService {
         role: true,
         createdAt: true,
         updatedAt: true,
+        settings: {
+          select: {
+            theme: true,
+            language: true,
+            notification: true,
+          },
+        },
+        categories: {
+          select: {
+            id: true,
+            name: true,
+            color: true,
+            sortOrder: true,
+            fields: { select: { id: true, name: true } },
+            _count: { select: { memos: true } },
+            createdAt: true,
+          },
+          orderBy: { sortOrder: 'asc' },
+        },
+        memos: {
+          select: {
+            id: true,
+            title: true,
+            content: true,
+            rating: true,
+            experienceDate: true,
+            category: { select: { name: true } },
+            customFields: {
+              select: {
+                value: true,
+                categoryField: { select: { name: true } },
+              },
+            },
+            createdAt: true,
+            updatedAt: true,
+          },
+          orderBy: { createdAt: 'desc' },
+          take: 50,
+        },
+        calendarMemos: {
+          select: {
+            id: true,
+            title: true,
+            startDate: true,
+            endDate: true,
+            isAllDay: true,
+            hasNotification: true,
+            notifyBefore: true,
+            notificationSent: true,
+            createdAt: true,
+          },
+          orderBy: { startDate: 'desc' },
+          take: 50,
+        },
+        devices: {
+          select: {
+            id: true,
+            expoPushToken: true,
+            deviceName: true,
+            platform: true,
+            isActive: true,
+            createdAt: true,
+            lastActiveAt: true,
+          },
+        },
         _count: {
           select: {
             memos: true,
@@ -111,10 +176,24 @@ export class UsersAdminService {
       throw new NotFoundException(ERROR_MESSAGES.USER_NOT_FOUND);
     }
 
+    const { categories, memos, _count, ...userData } = user;
+
     return {
-      ...user,
-      memoCount: user._count.memos,
-      categoryCount: user._count.categories,
+      ...userData,
+      memoCount: _count.memos,
+      categoryCount: _count.categories,
+      categories: categories.map(({ _count: catCount, ...cat }) => ({
+        ...cat,
+        memoCount: catCount.memos,
+      })),
+      memos: memos.map(({ category, customFields, ...memo }) => ({
+        ...memo,
+        categoryName: category?.name,
+        customFields: customFields.map((cf) => ({
+          fieldName: cf.categoryField.name,
+          value: cf.value,
+        })),
+      })),
     };
   }
 
