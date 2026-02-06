@@ -15,7 +15,7 @@ import {
   ApiResponse,
   ApiBearerAuth,
 } from '@nestjs/swagger';
-import { PrismaService } from '../../../prisma/prisma.service';
+import { DevicesService } from './devices.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { RegisterDeviceDto, DeviceResponseDto } from './dto';
@@ -25,7 +25,7 @@ import { RegisterDeviceDto, DeviceResponseDto } from './dto';
 @UseGuards(JwtAuthGuard)
 @ApiBearerAuth()
 export class DevicesController {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly devicesService: DevicesService) {}
 
   @Post()
   @ApiOperation({ summary: '디바이스 등록 (푸시 토큰)' })
@@ -35,26 +35,7 @@ export class DevicesController {
     @CurrentUser('id') userId: string,
     @Body() dto: RegisterDeviceDto,
   ): Promise<DeviceResponseDto> {
-    // 기존에 같은 토큰이 있으면 업데이트, 없으면 생성
-    const device = await this.prisma.userDevice.upsert({
-      where: { expoPushToken: dto.expoPushToken },
-      update: {
-        userId, // 다른 사용자가 같은 디바이스로 로그인하면 소유자 변경
-        deviceName: dto.deviceName,
-        platform: dto.platform,
-        isActive: true,
-        lastActiveAt: new Date(),
-      },
-      create: {
-        userId,
-        expoPushToken: dto.expoPushToken,
-        deviceName: dto.deviceName,
-        platform: dto.platform,
-        isActive: true,
-      },
-    });
-
-    return device;
+    return this.devicesService.registerDevice(userId, dto);
   }
 
   @Get()
@@ -63,10 +44,7 @@ export class DevicesController {
   async getMyDevices(
     @CurrentUser('id') userId: string,
   ): Promise<DeviceResponseDto[]> {
-    return this.prisma.userDevice.findMany({
-      where: { userId },
-      orderBy: { lastActiveAt: 'desc' },
-    });
+    return this.devicesService.getMyDevices(userId);
   }
 
   @Delete(':id')
@@ -78,12 +56,7 @@ export class DevicesController {
     @CurrentUser('id') userId: string,
     @Param('id') deviceId: string,
   ): Promise<void> {
-    await this.prisma.userDevice.deleteMany({
-      where: {
-        id: deviceId,
-        userId, // 본인 디바이스만 삭제 가능
-      },
-    });
+    await this.devicesService.removeDevice(userId, deviceId);
   }
 
   @Delete()
@@ -93,9 +66,6 @@ export class DevicesController {
   async removeAllDevices(
     @CurrentUser('id') userId: string,
   ): Promise<void> {
-    await this.prisma.userDevice.deleteMany({
-      where: { userId },
-    });
+    await this.devicesService.removeAllDevices(userId);
   }
 }
-
