@@ -7,91 +7,101 @@ export class DashboardService {
   constructor(private readonly prisma: PrismaService) {}
 
   async getStatistics() {
-    const [totalUsers, totalCategories, activeUsers] = await Promise.all([
+    const now = new Date();
+    const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+    const [totalUsers, totalMemos, activeUsers, newUsersThisMonth, newUsersLastMonth] = await Promise.all([
       this.prisma.user.count({
         where: { role: UserRole.USER },
       }),
-      this.prisma.category.count(),
+      this.prisma.memo.count(),
+      // MAU: 최근 30일간 앱을 열어본 유저 수
       this.prisma.user.count({
-        where: {
-          role: UserRole.USER,
-          updatedAt: {
-            gte: new Date(new Date().setMonth(new Date().getMonth() - 1)),
-          },
-        },
+        where: { role: UserRole.USER, lastActiveAt: { gte: thirtyDaysAgo } },
+      }),
+      this.prisma.user.count({
+        where: { role: UserRole.USER, createdAt: { gte: thisMonthStart } },
+      }),
+      this.prisma.user.count({
+        where: { role: UserRole.USER, createdAt: { gte: lastMonthStart, lt: thisMonthStart } },
       }),
     ]);
 
-    const lastMonthUsers = await this.prisma.user.count({
-      where: {
-        role: UserRole.USER,
-        createdAt: {
-          gte: new Date(new Date().setMonth(new Date().getMonth() - 2)),
-          lt: new Date(new Date().setMonth(new Date().getMonth() - 1)),
-        },
-      },
-    });
-
-    const userGrowthRate = lastMonthUsers > 0 
-      ? Math.round(((totalUsers - lastMonthUsers) / lastMonthUsers) * 100)
-      : 100;
+    // MoM 신규가입 증가율
+    const userGrowthRate =
+      newUsersLastMonth > 0
+        ? Math.round(((newUsersThisMonth - newUsersLastMonth) / newUsersLastMonth) * 100)
+        : newUsersThisMonth > 0
+          ? 100
+          : 0;
 
     return {
       totalUsers,
-      totalCategories,
+      totalMemos,
       activeUsers,
       userGrowthRate,
     };
   }
 
   async getRecentActivities() {
-    const recentUsers = await this.prisma.user.findMany({
-      where: { role: UserRole.USER },
-      take: 10,
-      orderBy: {
-        createdAt: 'desc',
-      },
-      select: {
-        id: true,
-        email: true,
-        nickname: true,
-        createdAt: true,
-      },
-    });
+    const userSelect = { select: { nickname: true } };
 
-    const recentCategories = await this.prisma.category.findMany({
-      take: 10,
-      orderBy: {
-        createdAt: 'desc',
-      },
-      select: {
-        id: true,
-        name: true,
-        createdAt: true,
-        user: {
-          select: {
-            nickname: true,
-          },
+    const [recentUsers, recentMemos, recentCalendarMemos] = await Promise.all([
+      this.prisma.user.findMany({
+        where: { role: UserRole.USER },
+        take: 10,
+        orderBy: { createdAt: 'desc' },
+        select: { id: true, email: true, nickname: true, createdAt: true },
+      }),
+      this.prisma.memo.findMany({
+        take: 10,
+        orderBy: { createdAt: 'desc' },
+        select: {
+          id: true,
+          title: true,
+          createdAt: true,
+          updatedAt: true,
+          user: userSelect,
+          category: { select: { name: true } },
         },
-      },
-    });
+      }),
+      this.prisma.calendarMemo.findMany({
+        take: 10,
+        orderBy: { createdAt: 'desc' },
+        select: {
+          id: true,
+          title: true,
+          createdAt: true,
+          updatedAt: true,
+          user: userSelect,
+        },
+      }),
+    ]);
 
     const activities = [
-      ...recentUsers.map(user => ({
+      ...recentUsers.map((user) => ({
         type: 'user_registration' as const,
         title: '새로운 사용자 등록',
         description: user.email,
         createdAt: user.createdAt,
       })),
-      ...recentCategories.map(category => ({
-        type: 'category_creation' as const,
-        title: '카테고리 생성',
-        description: `${category.name} (by ${category.user.nickname})`,
-        createdAt: category.createdAt,
+      ...recentMemos.map((memo) => ({
+        type: (memo.updatedAt.getTime() - memo.createdAt.getTime() > 1000 ? 'memo_update' : 'memo_creation') as string,
+        title: memo.updatedAt.getTime() - memo.createdAt.getTime() > 1000 ? '메모 수정' : '메모 작성',
+        description: `${memo.title}${memo.category ? ` [${memo.category.name}]` : ''} (by ${memo.user.nickname})`,
+        createdAt: memo.updatedAt,
+      })),
+      ...recentCalendarMemos.map((cm) => ({
+        type: (cm.updatedAt.getTime() - cm.createdAt.getTime() > 1000 ? 'calendar_memo_update' : 'calendar_memo_creation') as string,
+        title: cm.updatedAt.getTime() - cm.createdAt.getTime() > 1000 ? '캘린더 메모 수정' : '캘린더 메모 작성',
+        description: `${cm.title} (by ${cm.user.nickname})`,
+        createdAt: cm.updatedAt,
       })),
     ]
       .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
-      .slice(0, 10);
+      .slice(0, 20);
 
     return activities;
   }
