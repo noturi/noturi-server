@@ -1,7 +1,8 @@
-import { Injectable, CanActivate, ExecutionContext, ForbiddenException } from '@nestjs/common';
+import { Injectable, CanActivate, ExecutionContext, UnauthorizedException, ForbiddenException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { PERMISSIONS_KEY } from '../decorators/permissions.decorator';
 import { Permission, ROLE_PERMISSIONS } from '../enums/permissions.enum';
+import { ERROR_MESSAGES } from '../constants/error-messages';
 import { AuthenticatedRequest } from '../types/auth.types';
 
 @Injectable()
@@ -22,17 +23,15 @@ export class PermissionsGuard implements CanActivate {
     const user = request.user;
 
     if (!user) {
-      throw new ForbiddenException('인증이 필요합니다');
+      throw new UnauthorizedException(ERROR_MESSAGES.AUTH_REQUIRED);
     }
 
     const userPermissions = ROLE_PERMISSIONS[user.role] || [];
-    
-    const hasPermission = requiredPermissions.every((permission) =>
-      userPermissions.includes(permission)
-    );
+
+    const hasPermission = requiredPermissions.every((permission) => userPermissions.includes(permission));
 
     if (!hasPermission) {
-      throw new ForbiddenException('권한이 부족합니다');
+      throw new ForbiddenException(ERROR_MESSAGES.FORBIDDEN);
     }
 
     return true;
