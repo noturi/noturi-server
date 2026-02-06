@@ -109,4 +109,13 @@ export class UpdateAdminNotificationDto {
   @IsOptional()
   @IsBoolean()
   isActive?: boolean;
+
+  @ApiProperty({
+    example: false,
+    description: '공휴일 건너뛰기 (반복 알림에서 한국 공휴일이면 발송하지 않음)',
+    required: false,
+  })
+  @IsOptional()
+  @IsBoolean()
+  skipHolidays?: boolean;
 }

@@ -28,6 +28,7 @@
     "wait-for-db": "node wait-for-db.js"
   },
   "dependencies": {
+    "@hyunbinseo/holidays-kr": "^3.2026.1",
     "@nestjs/common": "^10.0.0",
     "@nestjs/config": "^4.0.2",
     "@nestjs/core": "^10.0.0",

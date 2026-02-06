@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@hyunbinseo/holidays-kr':
+        specifier: ^3.2026.1
+        version: 3.2026.1
       '@nestjs/common':
         specifier: ^10.0.0
         version: 10.4.19(class-transformer@0.5.1)(class-validator@0.14.2)(reflect-metadata@0.2.2)(rxjs@7.8.2)
@@ -384,6 +387,10 @@ packages:
   '@humanwhocodes/object-schema@2.0.3':
     resolution: {integrity: sha512-93zYdMES/c1D69yZiKDBj0V24vqNzB/koF26KPaagAfd3P/4gUlh3Dys5ogAK+Exi9QyzlD8x/08Zt7wIKcDcA==}
     deprecated: Use @eslint/object-schema instead
+
+  '@hyunbinseo/holidays-kr@3.2026.1':
+    resolution: {integrity: sha512-ZfQn8q2rufEe+wR9wWYIZ7RL46dDBWwy5Sl60VcOq5E/zAxQtd0M9NHftyw3+vj3ntzfKg2ppl853f83oYEqrQ==}
+    engines: {node: '>=18'}
 
   '@isaacs/cliui@8.0.2':
     resolution: {integrity: sha512-O8jcjabXaleOG9DQ0+ARXWZBTfnP4WNAqzuiJK7ll44AmxGKv/J2M4TPjxjY3znBCfvBXFzucm1twdyFybFqEA==}
@@ -3509,6 +3516,8 @@ snapshots:
   '@humanwhocodes/module-importer@1.0.1': {}
 
   '@humanwhocodes/object-schema@2.0.3': {}
+
+  '@hyunbinseo/holidays-kr@3.2026.1': {}
 
   '@isaacs/cliui@8.0.2':
     dependencies:

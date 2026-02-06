@@ -5,6 +5,7 @@ import { PrismaService } from '../../../../prisma/prisma.service';
 import { NotificationsService } from '../notifications.service';
 import { CreateAdminNotificationDto, UpdateAdminNotificationDto, AdminNotificationQueryDto } from './dto';
 import { ERROR_MESSAGES } from '../../../common/constants/error-messages';
+import { isKoreanHoliday } from '../../../common/utils/korean-holidays.util';
 
 @Injectable()
 export class AdminNotificationsService {
@@ -51,6 +52,7 @@ export class AdminNotificationsService {
         isRepeat: dto.isRepeat ?? false,
         repeatDays: dto.repeatDays ?? [],
         repeatEndAt: dto.repeatEndAt ? new Date(dto.repeatEndAt) : null,
+        skipHolidays: dto.skipHolidays ?? false,
         createdBy: adminId,
       },
     });
@@ -203,6 +205,7 @@ export class AdminNotificationsService {
         ...(dto.repeatEndAt !== undefined && {
           repeatEndAt: dto.repeatEndAt ? new Date(dto.repeatEndAt) : null,
         }),
+        ...(dto.skipHolidays !== undefined && { skipHolidays: dto.skipHolidays }),
         ...(dto.isActive !== undefined && { isActive: dto.isActive }),
       },
     });
@@ -403,6 +406,12 @@ export class AdminNotificationsService {
     this.logger.debug(`조건에 맞는 반복 알림 수: ${repeatNotifications.length}`);
 
     for (const notification of repeatNotifications) {
+      // 공휴일 건너뛰기
+      if (notification.skipHolidays && isKoreanHoliday(koreaTime)) {
+        this.logger.log(`반복 알림 ${notification.id} 공휴일로 건너뜀`);
+        continue;
+      }
+
       // 오늘 이미 발송했는지 확인 (한국 시간 기준 자정)
       const todayStartKorea = new Date(koreaTime);
       todayStartKorea.setUTCHours(0, 0, 0, 0);

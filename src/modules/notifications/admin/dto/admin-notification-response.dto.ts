@@ -53,6 +53,9 @@ export class AdminNotificationResponseDto {
   @ApiProperty({ example: '2024-12-31T23:59:59.000Z', required: false })
   repeatEndAt?: Date;
 
+  @ApiProperty({ example: false, description: '공휴일 건너뛰기' })
+  skipHolidays: boolean;
+
   @ApiProperty({ example: true })
   isActive: boolean;
 

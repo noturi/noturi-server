@@ -98,4 +98,13 @@ export class CreateAdminNotificationDto {
   @IsOptional()
   @IsDateString()
   repeatEndAt?: string;
+
+  @ApiProperty({
+    example: false,
+    description: '공휴일 건너뛰기 (반복 알림에서 한국 공휴일이면 발송하지 않음)',
+    default: false,
+  })
+  @IsOptional()
+  @IsBoolean()
+  skipHolidays?: boolean;
 }

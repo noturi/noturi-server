@@ -267,6 +267,7 @@ model AdminNotification {
   isRepeat     Boolean   @default(false)
   repeatDays   Int[]     // 반복 요일 (0=일, 1=월, 2=화, 3=수, 4=목, 5=금, 6=토)
   repeatEndAt  DateTime? // 반복 종료일
+  skipHolidays Boolean   @default(false) // 공휴일 건너뛰기
 
   // 상태
   isActive   Boolean   @default(true) // 활성화 여부 (반복 알림 중지용)
