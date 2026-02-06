@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { CreateCalendarMemoDto, QueryCalendarMemoDto, UpdateCalendarMemoDto } from './client/dto';
+import { ERROR_MESSAGES } from '../../common/constants/error-messages';
 
 @Injectable()
 export class CalendarMemosService {
@@ -95,7 +96,7 @@ export class CalendarMemosService {
     });
 
     if (!calendarMemo) {
-      throw new NotFoundException('일정을 찾을 수 없습니다');
+      throw new NotFoundException(ERROR_MESSAGES.CALENDAR_MEMO_NOT_FOUND);
     }
 
     return calendarMemo;

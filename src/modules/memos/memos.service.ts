@@ -1,6 +1,9 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { CreateMemoDto, QueryMemoDto, UpdateMemoDto } from './client/dto';
+import { CATEGORY_BRIEF_SELECT } from '../../common/constants/prisma-selects';
+import { ERROR_MESSAGES } from '../../common/constants/error-messages';
 
 @Injectable()
 export class MemosService {
@@ -16,7 +19,7 @@ export class MemosService {
       });
 
       if (!category) {
-        throw new NotFoundException('카테고리를 찾을 수 없습니다');
+        throw new NotFoundException(ERROR_MESSAGES.CATEGORY_NOT_FOUND);
       }
     }
 
@@ -30,13 +33,7 @@ export class MemosService {
       },
       include: {
         category: categoryId
-          ? {
-              select: {
-                id: true,
-                name: true,
-                color: true,
-              },
-            }
+          ? { select: CATEGORY_BRIEF_SELECT }
           : false,
       },
     });
@@ -45,13 +42,13 @@ export class MemosService {
   async getMemos(userId: string, queryDto: QueryMemoDto) {
     const { keyword, categoryId, year, page = 1, limit = 20 } = queryDto;
 
-    const where: any = {
+    const where: Prisma.MemoWhereInput = {
       userId,
       ...(categoryId && { categoryId }),
       ...(keyword && {
         OR: [
-          { title: { contains: keyword, mode: 'insensitive' } },
-          { content: { contains: keyword, mode: 'insensitive' } },
+          { title: { contains: keyword, mode: 'insensitive' as const } },
+          { content: { contains: keyword, mode: 'insensitive' as const } },
         ],
       }),
       ...(year && {
@@ -67,11 +64,7 @@ export class MemosService {
         where,
         include: {
           category: {
-            select: {
-              id: true,
-              name: true,
-              color: true,
-            },
+            select: CATEGORY_BRIEF_SELECT,
           },
         },
         orderBy: { updatedAt: 'desc' },
@@ -97,17 +90,13 @@ export class MemosService {
       where: { id: memoId, userId },
       include: {
         category: {
-          select: {
-            id: true,
-            name: true,
-            color: true,
-          },
+          select: CATEGORY_BRIEF_SELECT,
         },
       },
     });
 
     if (!memo) {
-      throw new NotFoundException('메모를 찾을 수 없습니다');
+      throw new NotFoundException(ERROR_MESSAGES.MEMO_NOT_FOUND);
     }
 
     return memo;
@@ -125,7 +114,7 @@ export class MemosService {
       });
 
       if (!category) {
-        throw new NotFoundException('카테고리를 찾을 수 없습니다');
+        throw new NotFoundException(ERROR_MESSAGES.CATEGORY_NOT_FOUND);
       }
     }
 
@@ -139,11 +128,7 @@ export class MemosService {
       },
       include: {
         category: {
-          select: {
-            id: true,
-            name: true,
-            color: true,
-          },
+          select: CATEGORY_BRIEF_SELECT,
         },
       },
     });

@@ -4,6 +4,7 @@ import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../../../prisma/prisma.service';
 import { NotificationsService } from '../notifications.service';
 import { CreateAdminNotificationDto, UpdateAdminNotificationDto, AdminNotificationQueryDto } from './dto';
+import { ERROR_MESSAGES } from '../../../common/constants/error-messages';
 
 @Injectable()
 export class AdminNotificationsService {
@@ -155,7 +156,7 @@ export class AdminNotificationsService {
     });
 
     if (!notification) {
-      throw new NotFoundException('알림을 찾을 수 없습니다');
+      throw new NotFoundException(ERROR_MESSAGES.NOTIFICATION_NOT_FOUND);
     }
 
     return {
@@ -173,7 +174,7 @@ export class AdminNotificationsService {
     });
 
     if (!existing) {
-      throw new NotFoundException('알림을 찾을 수 없습니다');
+      throw new NotFoundException(ERROR_MESSAGES.NOTIFICATION_NOT_FOUND);
     }
 
     // data 또는 linkUrl이 변경되면 병합
@@ -221,7 +222,7 @@ export class AdminNotificationsService {
     });
 
     if (!existing) {
-      throw new NotFoundException('알림을 찾을 수 없습니다');
+      throw new NotFoundException(ERROR_MESSAGES.NOTIFICATION_NOT_FOUND);
     }
 
     await this.prisma.adminNotification.delete({ where: { id } });
@@ -236,7 +237,7 @@ export class AdminNotificationsService {
     });
 
     if (!notification) {
-      throw new NotFoundException('알림을 찾을 수 없습니다');
+      throw new NotFoundException(ERROR_MESSAGES.NOTIFICATION_NOT_FOUND);
     }
 
     return this.sendNotification(id);
@@ -251,7 +252,7 @@ export class AdminNotificationsService {
     });
 
     if (!notification) {
-      throw new NotFoundException('알림을 찾을 수 없습니다');
+      throw new NotFoundException(ERROR_MESSAGES.NOTIFICATION_NOT_FOUND);
     }
 
     const { title, body, data, targetUserIds } = notification;

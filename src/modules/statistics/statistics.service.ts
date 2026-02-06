@@ -377,36 +377,48 @@ export class StatisticsService {
     const now = new Date();
     const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
 
-    const categories = await this.prisma.category.findMany({
-      where: { userId },
-      include: {
-        memos: {
-          select: {
-            rating: true,
-            createdAt: true,
+    // 카테고리별 전체 개수, 평균 평점, 마지막 메모만 조회 (N+1 방지)
+    const [categories, totalMemos, thisMonthCounts] = await Promise.all([
+      this.prisma.category.findMany({
+        where: { userId },
+        include: {
+          _count: { select: { memos: true } },
+          memos: {
+            select: { rating: true, createdAt: true },
+            orderBy: { createdAt: 'desc' },
+            take: 1,
           },
         },
+      }),
+      this.prisma.memo.count({ where: { userId } }),
+      // 이번 달 메모 카운트를 groupBy로 한 번에 조회
+      this.prisma.memo.groupBy({
+        by: ['categoryId'],
+        where: {
+          userId,
+          createdAt: { gte: thisMonthStart },
+        },
+        _count: true,
+      }),
+    ]);
+
+    // 카테고리별 평균 평점 조회
+    const avgRatings = await this.prisma.memo.groupBy({
+      by: ['categoryId'],
+      where: {
+        userId,
+        rating: { not: null },
       },
+      _avg: { rating: true },
     });
 
-    const totalMemos = await this.prisma.memo.count({
-      where: { userId },
-    });
+    const thisMonthMap = new Map(thisMonthCounts.map((c) => [c.categoryId, c._count]));
+    const avgRatingMap = new Map(avgRatings.map((r) => [r.categoryId, Number(r._avg.rating) || 0]));
 
     return categories.map((category) => {
-      const memos = category.memos;
-      const count = memos.length;
-      const thisMonthCount = memos.filter((memo) => memo.createdAt >= thisMonthStart).length;
-
-      const memosWithRating = memos.filter((memo) => memo.rating !== null);
-      const averageRating =
-        memosWithRating.length > 0
-          ? Math.round(
-              (memosWithRating.reduce((sum, memo) => sum + Number(memo.rating), 0) / memosWithRating.length) * 10,
-            ) / 10
-          : 0;
-
-      const lastMemo = memos.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())[0];
+      const count = category._count.memos;
+      const lastMemo = category.memos[0];
+      const avgRating = avgRatingMap.get(category.id) || 0;
 
       return {
         id: category.id,
@@ -414,9 +426,9 @@ export class StatisticsService {
         color: category.color || '#000000',
         count,
         percentage: totalMemos > 0 ? Math.round((count / totalMemos) * 1000) / 10 : 0,
-        averageRating,
+        averageRating: Math.round(avgRating * 10) / 10,
         lastMemoDate: lastMemo?.createdAt.toISOString().split('T')[0],
-        thisMonthCount,
+        thisMonthCount: thisMonthMap.get(category.id) || 0,
       };
     });
   }

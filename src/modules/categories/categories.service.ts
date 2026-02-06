@@ -4,6 +4,8 @@ import { PrismaService } from 'prisma/prisma.service';
 import { AppErrorCode } from '../../common/errors/app-error-codes';
 import { PrismaErrorHandler } from '../../common/exceptions/prisma-error.handler';
 import { CreateCategoryDto, ReorderCategoriesDto, UpdateCategoryDto } from './client/dto';
+import { ERROR_MESSAGES } from '../../common/constants/error-messages';
+import { MEMO_COUNT_INCLUDE } from '../../common/constants/prisma-selects';
 
 const MAX_CATEGORIES_PER_USER = 10;
 
@@ -14,11 +16,7 @@ export class CategoriesService {
   async findAll(userId: string) {
     const categories = await this.prisma.category.findMany({
       where: { userId },
-      include: {
-        _count: {
-          select: { memos: true },
-        },
-      },
+      include: MEMO_COUNT_INCLUDE,
       orderBy: [{ sortOrder: 'asc' }, { createdAt: 'desc' }],
     });
 
@@ -31,15 +29,11 @@ export class CategoriesService {
   async findOne(userId: string, id: string) {
     const category = await this.prisma.category.findFirst({
       where: { id, userId },
-      include: {
-        _count: {
-          select: { memos: true },
-        },
-      },
+      include: MEMO_COUNT_INCLUDE,
     });
 
     if (!category) {
-      throw new NotFoundException('카테고리를 찾을 수 없습니다');
+      throw new NotFoundException(ERROR_MESSAGES.CATEGORY_NOT_FOUND);
     }
 
     const { _count, ...categoryData } = category;
@@ -85,7 +79,7 @@ export class CategoriesService {
     });
 
     if (!category) {
-      throw new NotFoundException('카테고리를 찾을 수 없습니다.');
+      throw new NotFoundException(ERROR_MESSAGES.CATEGORY_NOT_FOUND);
     }
 
     try {
@@ -101,22 +95,18 @@ export class CategoriesService {
   async remove(userId: string, id: string) {
     const category = await this.prisma.category.findFirst({
       where: { id, userId },
-      include: {
-        _count: {
-          select: { memos: true },
-        },
-      },
+      include: MEMO_COUNT_INCLUDE,
     });
 
     if (!category) {
-      throw new NotFoundException('카테고리를 찾을 수 없습니다');
+      throw new NotFoundException(ERROR_MESSAGES.CATEGORY_NOT_FOUND);
     }
 
     if (category._count.memos > 0) {
       throw new HttpException(
         {
           statusCode: HttpStatus.CONFLICT,
-          code: 4092, // AppErrorCode.CATEGORY_HAS_MEMOS
+          code: AppErrorCode.CATEGORY_HAS_MEMOS,
           message: '메모가 있는 카테고리는 삭제할 수 없습니다',
           details: { memoCount: category._count.memos },
         },

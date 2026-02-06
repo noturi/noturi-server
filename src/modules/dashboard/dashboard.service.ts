@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
+import { UserRole } from '../../common/enums/permissions.enum';
 
 @Injectable()
 export class DashboardService {
@@ -8,12 +9,12 @@ export class DashboardService {
   async getStatistics() {
     const [totalUsers, totalCategories, activeUsers] = await Promise.all([
       this.prisma.user.count({
-        where: { role: 'USER' },
+        where: { role: UserRole.USER },
       }),
       this.prisma.category.count(),
       this.prisma.user.count({
         where: {
-          role: 'USER',
+          role: UserRole.USER,
           updatedAt: {
             gte: new Date(new Date().setMonth(new Date().getMonth() - 1)),
           },
@@ -23,7 +24,7 @@ export class DashboardService {
 
     const lastMonthUsers = await this.prisma.user.count({
       where: {
-        role: 'USER',
+        role: UserRole.USER,
         createdAt: {
           gte: new Date(new Date().setMonth(new Date().getMonth() - 2)),
           lt: new Date(new Date().setMonth(new Date().getMonth() - 1)),
@@ -45,7 +46,7 @@ export class DashboardService {
 
   async getRecentActivities() {
     const recentUsers = await this.prisma.user.findMany({
-      where: { role: 'USER' },
+      where: { role: UserRole.USER },
       take: 10,
       orderBy: {
         createdAt: 'desc',
