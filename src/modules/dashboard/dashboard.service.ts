@@ -87,18 +87,24 @@ export class DashboardService {
         description: user.email,
         createdAt: user.createdAt,
       })),
-      ...recentMemos.map((memo) => ({
-        type: (memo.updatedAt.getTime() - memo.createdAt.getTime() > 1000 ? 'memo_update' : 'memo_creation') as string,
-        title: memo.updatedAt.getTime() - memo.createdAt.getTime() > 1000 ? '메모 수정' : '메모 작성',
-        description: `${memo.title}${memo.category ? ` [${memo.category.name}]` : ''} (by ${memo.user.nickname})`,
-        createdAt: memo.updatedAt,
-      })),
-      ...recentCalendarMemos.map((cm) => ({
-        type: (cm.updatedAt.getTime() - cm.createdAt.getTime() > 1000 ? 'calendar_memo_update' : 'calendar_memo_creation') as string,
-        title: cm.updatedAt.getTime() - cm.createdAt.getTime() > 1000 ? '캘린더 메모 수정' : '캘린더 메모 작성',
-        description: `${cm.title} (by ${cm.user.nickname})`,
-        createdAt: cm.updatedAt,
-      })),
+      ...recentMemos.map((memo) => {
+        const isUpdate = memo.updatedAt.getTime() - memo.createdAt.getTime() > 1000;
+        return {
+          type: isUpdate ? ('memo_update' as const) : ('memo_creation' as const),
+          title: isUpdate ? '메모 수정' : '메모 작성',
+          description: `${memo.title}${memo.category ? ` [${memo.category.name}]` : ''} (by ${memo.user.nickname})`,
+          createdAt: memo.updatedAt,
+        };
+      }),
+      ...recentCalendarMemos.map((cm) => {
+        const isUpdate = cm.updatedAt.getTime() - cm.createdAt.getTime() > 1000;
+        return {
+          type: isUpdate ? ('calendar_memo_update' as const) : ('calendar_memo_creation' as const),
+          title: isUpdate ? '캘린더 메모 수정' : '캘린더 메모 작성',
+          description: `${cm.title} (by ${cm.user.nickname})`,
+          createdAt: cm.updatedAt,
+        };
+      }),
     ]
       .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
       .slice(0, 20);
