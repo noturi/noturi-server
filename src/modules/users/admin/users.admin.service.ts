@@ -2,6 +2,7 @@ import { Injectable, NotFoundException, ConflictException } from '@nestjs/common
 import { PrismaService } from '../../../../prisma/prisma.service';
 import { AdminUserQueryDto } from './dto';
 import { UserRole } from '../../../common/enums/permissions.enum';
+import { ERROR_MESSAGES } from '../../../common/constants/error-messages';
 
 @Injectable()
 export class UsersAdminService {
@@ -107,7 +108,7 @@ export class UsersAdminService {
     });
 
     if (!user) {
-      throw new NotFoundException('사용자를 찾을 수 없습니다');
+      throw new NotFoundException(ERROR_MESSAGES.USER_NOT_FOUND);
     }
 
     return {
@@ -123,7 +124,7 @@ export class UsersAdminService {
     });
 
     if (!user) {
-      throw new NotFoundException('사용자를 찾을 수 없습니다');
+      throw new NotFoundException(ERROR_MESSAGES.USER_NOT_FOUND);
     }
 
     if (user.role === UserRole.SUPER_ADMIN) {
@@ -141,7 +142,7 @@ export class UsersAdminService {
     });
 
     if (!user) {
-      throw new NotFoundException('사용자를 찾을 수 없습니다');
+      throw new NotFoundException(ERROR_MESSAGES.USER_NOT_FOUND);
     }
 
     return this.prisma.user.update({

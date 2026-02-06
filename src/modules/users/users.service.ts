@@ -1,15 +1,13 @@
 import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { UpdateUserDto, UpdateUserSettingsDto } from './client/dto';
-import { AdminUserQueryDto } from './admin/dto';
-import { UserRole } from '../../common/enums/permissions.enum';
 import { Theme, Language } from '@prisma/client';
+import { ERROR_MESSAGES } from '../../common/constants/error-messages';
 
 @Injectable()
 export class UsersService {
   constructor(private readonly prisma: PrismaService) {}
 
-  // 클라이언트용 메서드들
   async getUserProfile(userId: string) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
@@ -25,7 +23,7 @@ export class UsersService {
     });
 
     if (!user) {
-      throw new NotFoundException('사용자를 찾을 수 없습니다');
+      throw new NotFoundException(ERROR_MESSAGES.USER_NOT_FOUND);
     }
 
     return user;
@@ -51,7 +49,7 @@ export class UsersService {
     });
 
     if (!user) {
-      throw new NotFoundException('사용자를 찾을 수 없습니다');
+      throw new NotFoundException(ERROR_MESSAGES.USER_NOT_FOUND);
     }
 
     return {
@@ -107,282 +105,11 @@ export class UsersService {
     });
 
     if (!user) {
-      throw new NotFoundException('사용자를 찾을 수 없습니다');
-    }
-
-    // 관련 데이터 삭제 (Cascade가 설정되어 있다면 자동으로 삭제됨)
-    await this.prisma.user.delete({
-      where: { id: userId },
-    });
-  }
-
-  // 어드민용 메서드들
-  async getAllUsers(queryDto: AdminUserQueryDto) {
-    const { email, role, page = 1, limit = 20, sort = [], createdAt } = queryDto;
-
-    const where: any = {
-      ...(email && {
-        email: { contains: email, mode: 'insensitive' },
-      }),
-      ...(role && {
-        role: Array.isArray(role) ? { in: role } : role,
-      }),
-      ...(createdAt && {
-        createdAt: {
-          ...(createdAt.start && { gte: createdAt.start }),
-          ...(createdAt.end && { lte: createdAt.end }),
-        },
-      }),
-    };
-
-    const orderBy: any = {};
-    if (sort.length > 0) {
-      sort.forEach((sortItem) => {
-        // sortItem.id가 유효한 필드인지 확인
-        if (sortItem.id && typeof sortItem.id === 'string') {
-          // desc 값 확인 - boolean 또는 문자열 처리
-          const isDesc = sortItem.desc === true || (sortItem.desc as any) === 'true';
-          const sortOrder = isDesc ? 'desc' : 'asc';
-          orderBy[sortItem.id] = sortOrder;
-        }
-      });
-
-      // 유효한 정렬 필드가 없으면 기본 정렬 적용
-      if (Object.keys(orderBy).length === 0) {
-        orderBy.createdAt = 'desc';
-      }
-    } else {
-      orderBy.createdAt = 'desc'; // 기본 정렬
-    }
-
-    const [users, total] = await Promise.all([
-      this.prisma.user.findMany({
-        where,
-        select: {
-          id: true,
-          nickname: true,
-          email: true,
-          name: true,
-          avatarUrl: true,
-          providers: true,
-          isStatsPublic: true,
-          role: true,
-          createdAt: true,
-          updatedAt: true,
-          _count: {
-            select: {
-              memos: true,
-              categories: true,
-            },
-          },
-        },
-        orderBy,
-        skip: (page - 1) * limit,
-        take: limit,
-      }),
-      this.prisma.user.count({ where }),
-    ]);
-
-    const totalPages = Math.ceil(total / limit);
-
-    const data = users.map((user) => ({
-      ...user,
-      memoCount: user._count.memos,
-      categoryCount: user._count.categories,
-    }));
-
-    return {
-      data,
-      page,
-      limit,
-      total,
-      totalPages,
-    };
-  }
-
-  async getUserByIdForAdmin(userId: string) {
-    const user = await this.prisma.user.findUnique({
-      where: { id: userId },
-      select: {
-        id: true,
-        nickname: true,
-        email: true,
-        name: true,
-        avatarUrl: true,
-        providers: true,
-        isStatsPublic: true,
-        role: true,
-        createdAt: true,
-        updatedAt: true,
-        // 카테고리 (필드 포함)
-        categories: {
-          select: {
-            id: true,
-            name: true,
-            color: true,
-            sortOrder: true,
-            createdAt: true,
-            fields: {
-              select: {
-                id: true,
-                name: true,
-              },
-            },
-            _count: {
-              select: {
-                memos: true,
-              },
-            },
-          },
-          orderBy: { sortOrder: 'asc' },
-        },
-        // 평가 메모
-        memos: {
-          select: {
-            id: true,
-            title: true,
-            content: true,
-            rating: true,
-            experienceDate: true,
-            createdAt: true,
-            updatedAt: true,
-            category: {
-              select: {
-                name: true,
-              },
-            },
-            customFields: {
-              select: {
-                value: true,
-                categoryField: {
-                  select: {
-                    name: true,
-                  },
-                },
-              },
-            },
-          },
-          orderBy: { createdAt: 'desc' },
-        },
-        // 캘린더 메모
-        calendarMemos: {
-          select: {
-            id: true,
-            title: true,
-            startDate: true,
-            endDate: true,
-            isAllDay: true,
-            hasNotification: true,
-            notifyBefore: true,
-            notificationSent: true,
-            createdAt: true,
-          },
-          orderBy: { startDate: 'desc' },
-        },
-        // 사용자 설정
-        settings: {
-          select: {
-            theme: true,
-            language: true,
-            notification: true,
-          },
-        },
-        // 디바이스
-        devices: {
-          select: {
-            id: true,
-            expoPushToken: true,
-            deviceName: true,
-            platform: true,
-            isActive: true,
-            createdAt: true,
-            lastActiveAt: true,
-          },
-          orderBy: { lastActiveAt: 'desc' },
-        },
-      },
-    });
-
-    if (!user) {
-      throw new NotFoundException('사용자를 찾을 수 없습니다');
-    }
-
-    return {
-      id: user.id,
-      nickname: user.nickname,
-      email: user.email,
-      name: user.name,
-      avatarUrl: user.avatarUrl,
-      providers: user.providers,
-      isStatsPublic: user.isStatsPublic,
-      role: user.role,
-      createdAt: user.createdAt,
-      updatedAt: user.updatedAt,
-      settings: user.settings,
-      categories: user.categories.map((cat) => ({
-        id: cat.id,
-        name: cat.name,
-        color: cat.color,
-        sortOrder: cat.sortOrder,
-        fields: cat.fields,
-        memoCount: cat._count.memos,
-        createdAt: cat.createdAt,
-      })),
-      memos: user.memos.map((memo) => ({
-        id: memo.id,
-        title: memo.title,
-        content: memo.content,
-        rating: memo.rating ? Number(memo.rating) : null,
-        experienceDate: memo.experienceDate,
-        categoryName: memo.category?.name,
-        customFields: memo.customFields.map((cf) => ({
-          fieldName: cf.categoryField.name,
-          value: cf.value,
-        })),
-        createdAt: memo.createdAt,
-        updatedAt: memo.updatedAt,
-      })),
-      calendarMemos: user.calendarMemos,
-      devices: user.devices,
-    };
-  }
-
-  async deleteUserByAdmin(userId: string) {
-    const user = await this.prisma.user.findUnique({
-      where: { id: userId },
-    });
-
-    if (!user) {
-      throw new NotFoundException('사용자를 찾을 수 없습니다');
-    }
-
-    if (user.role === UserRole.SUPER_ADMIN) {
-      throw new ConflictException('슈퍼어드민 계정은 삭제할 수 없습니다');
+      throw new NotFoundException(ERROR_MESSAGES.USER_NOT_FOUND);
     }
 
     await this.prisma.user.delete({
       where: { id: userId },
-    });
-  }
-
-  async updateUserRole(userId: string, newRole: UserRole) {
-    const user = await this.prisma.user.findUnique({
-      where: { id: userId },
-    });
-
-    if (!user) {
-      throw new NotFoundException('사용자를 찾을 수 없습니다');
-    }
-
-    return this.prisma.user.update({
-      where: { id: userId },
-      data: { role: newRole },
-      select: {
-        id: true,
-        nickname: true,
-        email: true,
-        role: true,
-      },
     });
   }
 

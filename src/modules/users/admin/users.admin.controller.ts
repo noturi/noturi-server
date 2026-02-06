@@ -1,6 +1,6 @@
 import { Controller, Get, Delete, Param, Query, UseGuards, HttpCode, HttpStatus } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
-import { UsersService } from '../users.service';
+import { UsersAdminService } from './users.admin.service';
 import { AdminUserQueryDto, AdminUserListResponseDto, AdminUserResponseDto } from './dto';
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../../common/guards/permissions.guard';
@@ -13,7 +13,7 @@ import { ErrorResponseDto } from '../../../common/dto/error-response.dto';
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 @ApiBearerAuth()
 export class UsersAdminController {
-  constructor(private readonly usersService: UsersService) {}
+  constructor(private readonly usersAdminService: UsersAdminService) {}
 
   @Get()
   @RequirePermissions(Permission.READ_USERS)
@@ -21,13 +21,7 @@ export class UsersAdminController {
   @ApiResponse({ status: 200, description: '조회 성공', type: AdminUserListResponseDto })
   @ApiResponse({ status: 403, description: '권한 없음', type: ErrorResponseDto })
   async getAllUsers(@Query() queryDto: AdminUserQueryDto) {
-    try {
-      const result = await this.usersService.getAllUsers(queryDto);
-      return result;
-    } catch (error) {
-      console.error('Admin users API error:', error);
-      throw error;
-    }
+    return this.usersAdminService.getAllUsers(queryDto);
   }
 
   @Get(':id')
@@ -37,7 +31,7 @@ export class UsersAdminController {
   @ApiResponse({ status: 404, description: '사용자 없음', type: ErrorResponseDto })
   @ApiResponse({ status: 403, description: '권한 없음', type: ErrorResponseDto })
   async getUserById(@Param('id') id: string) {
-    return this.usersService.getUserByIdForAdmin(id);
+    return this.usersAdminService.getUserByIdForAdmin(id);
   }
 
   @Delete(':id')
@@ -49,6 +43,6 @@ export class UsersAdminController {
   @ApiResponse({ status: 409, description: '슈퍼어드민 삭제 불가', type: ErrorResponseDto })
   @ApiResponse({ status: 403, description: '권한 없음', type: ErrorResponseDto })
   async deleteUser(@Param('id') id: string) {
-    await this.usersService.deleteUserByAdmin(id);
+    await this.usersAdminService.deleteUserByAdmin(id);
   }
 }
