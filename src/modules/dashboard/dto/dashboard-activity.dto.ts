@@ -2,7 +2,7 @@ import { ApiProperty } from '@nestjs/swagger';
 
 export class DashboardActivityDto {
   @ApiProperty({ description: '활동 유형', example: 'user_registration' })
-  type: 'user_registration' | 'memo_creation' | 'memo_update' | 'calendar_memo_creation' | 'calendar_memo_update';
+  type: 'user_registration' | 'category_creation';
 
   @ApiProperty({ description: '활동 제목', example: '새로운 사용자 등록' })
   title: string;
