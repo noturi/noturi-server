@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../../../prisma/prisma.service';
-import { CreateDefaultCategoryDto, UpdateDefaultCategoryDto } from './dto';
+import { CreateDefaultCategoryDto, UpdateDefaultCategoryDto, ReorderDefaultCategoriesDto } from './dto';
 import { PrismaErrorHandler } from '../../../common/exceptions/prisma-error.handler';
 
 @Injectable()
@@ -66,6 +66,34 @@ export class AdminService {
     } catch (error) {
       PrismaErrorHandler.handle(error);
     }
+  }
+
+  async toggleActive(id: string) {
+    const category = await this.prisma.defaultCategory.findUnique({
+      where: { id },
+    });
+
+    if (!category) {
+      throw new NotFoundException('기본 카테고리를 찾을 수 없습니다');
+    }
+
+    return this.prisma.defaultCategory.update({
+      where: { id },
+      data: { isActive: !category.isActive },
+    });
+  }
+
+  async reorder(dto: ReorderDefaultCategoriesDto) {
+    const updates = dto.categories.map(({ id, sortOrder }) =>
+      this.prisma.defaultCategory.update({
+        where: { id },
+        data: { sortOrder },
+      }),
+    );
+
+    await this.prisma.$transaction(updates);
+
+    return this.getDefaultCategories();
   }
 
   async getActiveDefaultCategories() {

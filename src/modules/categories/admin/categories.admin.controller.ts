@@ -1,7 +1,12 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, UseGuards, HttpCode, HttpStatus } from '@nestjs/common';
+import { Controller, Get, Post, Put, Patch, Delete, Body, Param, UseGuards, HttpCode, HttpStatus } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { AdminService } from './admin.service';
-import { CreateDefaultCategoryDto, UpdateDefaultCategoryDto, DefaultCategoryResponseDto } from './dto';
+import {
+  CreateDefaultCategoryDto,
+  UpdateDefaultCategoryDto,
+  ReorderDefaultCategoriesDto,
+  DefaultCategoryResponseDto,
+} from './dto';
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../../common/guards/permissions.guard';
 import { RequirePermissions } from '../../../common/decorators/permissions.decorator';
@@ -43,6 +48,25 @@ export class CategoriesAdminController {
   @ApiResponse({ status: 403, description: '권한 없음', type: ErrorResponseDto })
   async createDefaultCategory(@Body() createDto: CreateDefaultCategoryDto) {
     return this.adminService.createDefaultCategory(createDto);
+  }
+
+  @Patch('reorder')
+  @RequirePermissions(Permission.UPDATE_DEFAULT_CATEGORIES)
+  @ApiOperation({ summary: '기본 카테고리 순서 변경' })
+  @ApiResponse({ status: 200, description: '순서 변경 성공', type: [DefaultCategoryResponseDto] })
+  @ApiResponse({ status: 403, description: '권한 없음', type: ErrorResponseDto })
+  async reorder(@Body() reorderDto: ReorderDefaultCategoriesDto) {
+    return this.adminService.reorder(reorderDto);
+  }
+
+  @Patch(':id/toggle-active')
+  @RequirePermissions(Permission.UPDATE_DEFAULT_CATEGORIES)
+  @ApiOperation({ summary: '기본 카테고리 활성/비활성 토글' })
+  @ApiResponse({ status: 200, description: '토글 성공', type: DefaultCategoryResponseDto })
+  @ApiResponse({ status: 404, description: '카테고리 없음', type: ErrorResponseDto })
+  @ApiResponse({ status: 403, description: '권한 없음', type: ErrorResponseDto })
+  async toggleActive(@Param('id') id: string) {
+    return this.adminService.toggleActive(id);
   }
 
   @Put(':id')

@@ -1,5 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsBoolean, IsOptional, IsInt, IsHexColor, MinLength, MaxLength } from 'class-validator';
+import { IsString, IsBoolean, IsOptional, IsInt, IsHexColor, MinLength, MaxLength, IsArray, ValidateNested } from 'class-validator';
+import { Type } from 'class-transformer';
 
 export class CreateDefaultCategoryDto {
   @ApiProperty({ example: '영화', description: '카테고리 이름' })
@@ -59,6 +60,24 @@ export class UpdateDefaultCategoryDto {
   @IsOptional()
   @IsBoolean()
   isActive?: boolean;
+}
+
+export class ReorderItemDto {
+  @ApiProperty({ example: 'uuid', description: '카테고리 ID' })
+  @IsString()
+  id: string;
+
+  @ApiProperty({ example: 1, description: '변경할 정렬 순서' })
+  @IsInt()
+  sortOrder: number;
+}
+
+export class ReorderDefaultCategoriesDto {
+  @ApiProperty({ type: [ReorderItemDto], description: '카테고리 ID와 순서 배열' })
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => ReorderItemDto)
+  categories: ReorderItemDto[];
 }
 
 export class DefaultCategoryResponseDto {
