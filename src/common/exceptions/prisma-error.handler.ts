@@ -22,7 +22,7 @@ export class PrismaErrorHandler {
           throw new HttpException(
             {
               statusCode: HttpStatus.NOT_FOUND,
-              code: AppErrorCode.CATEGORY_NOT_FOUND,
+              code: AppErrorCode.RECORD_NOT_FOUND,
               message: '데이터를 찾을 수 없습니다',
             },
             HttpStatus.NOT_FOUND,
