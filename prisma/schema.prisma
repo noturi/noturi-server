@@ -41,10 +41,11 @@ model User {
   // 로컬 인증 (어드민용)
   password String? // bcrypt 해시
 
-  isStatsPublic Boolean  @default(false)
-  role          UserRole @default(USER)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  isStatsPublic Boolean   @default(false)
+  role          UserRole  @default(USER)
+  lastActiveAt  DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
   // Todo 통계
   totalTodos     Int @default(0) // 전체 투두 수

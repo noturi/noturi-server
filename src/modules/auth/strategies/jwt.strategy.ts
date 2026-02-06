@@ -30,11 +30,21 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   async validate(payload: JwtPayload) {
     const user = await this.prisma.user.findUnique({
       where: { id: payload.sub },
-      select: USER_PROFILE_SELECT,
+      select: { ...USER_PROFILE_SELECT, lastActiveAt: true },
     });
 
     if (!user) {
       throw new UnauthorizedException(ERROR_MESSAGES.USER_NOT_FOUND);
+    }
+
+    // 하루에 한 번만 lastActiveAt 갱신
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    if (!user.lastActiveAt || user.lastActiveAt < today) {
+      this.prisma.user.update({
+        where: { id: payload.sub },
+        data: { lastActiveAt: new Date() },
+      }).catch(() => {});
     }
 
     return user;
