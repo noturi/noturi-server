@@ -15,7 +15,7 @@ export class UsersAdminService {
       ...(email && {
         email: { contains: email, mode: 'insensitive' },
       }),
-      ...(role && { role }),
+      ...(role && { role: Array.isArray(role) ? { in: role } : role }),
       ...(createdAt && {
         createdAt: {
           ...(createdAt.start && { gte: createdAt.start }),
