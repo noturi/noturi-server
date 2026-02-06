@@ -11,10 +11,7 @@ export async function seedDefaultCategories() {
     { name: '영화', color: '#FF6B6B', description: '영화 관련 메모', sortOrder: 1 },
     { name: '독서', color: '#4ECDC4', description: '책과 독서 관련 메모', sortOrder: 2 },
     { name: '음악', color: '#45B7D1', description: '음악 관련 메모', sortOrder: 3 },
-    { name: '음식', color: '#FFA726', description: '음식과 맛집 관련 메모', sortOrder: 4 },
-    { name: '여행', color: '#66BB6A', description: '여행 관련 메모', sortOrder: 5 },
-    { name: '운동', color: '#AB47BC', description: '운동과 건강 관련 메모', sortOrder: 6 },
-    { name: '일상', color: '#78909C', description: '일상 생활 메모', sortOrder: 7 },
+    { name: '일상', color: '#78909C', description: '일상 생활 메모', sortOrder: 4 },
   ];
 
   // 기본 카테고리 생성
