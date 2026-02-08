@@ -24,6 +24,7 @@ import {
   QueryStatsDto,
   ResponseTodoDto,
   TodoListResponseDto,
+  ToggleTodoResponseDto,
   ResponseTemplateDto,
   TemplateListResponseDto,
   MonthlyStatsResponseDto,
@@ -149,7 +150,7 @@ export class TodosClientController {
     summary: '투두 완료 토글',
     description: '투두의 완료 상태를 토글합니다 (완료 ↔ 미완료)',
   })
-  @ApiResponse({ status: 200, description: '토글 성공', type: ResponseTodoDto })
+  @ApiResponse({ status: 200, description: '토글 성공', type: ToggleTodoResponseDto })
   @ApiResponse({ status: 404, description: '투두 없음', type: ErrorResponseDto })
   async toggleTodo(@Request() req: AuthenticatedRequest, @Param('id') id: string) {
     const result = await this.todosService.toggleTodo(req.user.id, id);

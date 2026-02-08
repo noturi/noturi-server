@@ -81,6 +81,28 @@ export class TodoListResponseDto {
 
   @ApiProperty({ example: 10, description: '총 개수' })
   total: number;
+
+  @ApiProperty({ example: 7, description: '완료한 투두 수' })
+  completed: number;
+
+  @ApiProperty({ example: 70, description: '달성률 (%)' })
+  rate: number;
+}
+
+export class DailyRateDto {
+  @ApiProperty({ example: 5, description: '해당 날짜 전체 투두 수' })
+  total: number;
+
+  @ApiProperty({ example: 3, description: '해당 날짜 완료한 투두 수' })
+  completed: number;
+
+  @ApiProperty({ example: 60, description: '해당 날짜 달성률 (%)' })
+  rate: number;
+}
+
+export class ToggleTodoResponseDto extends ResponseTodoDto {
+  @ApiProperty({ type: DailyRateDto, description: '해당 날짜의 달성률' })
+  dailyStats: DailyRateDto;
 }
 
 export class TemplateListResponseDto {

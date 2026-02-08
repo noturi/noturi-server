@@ -196,12 +196,16 @@ export class TodosService {
         orderBy: [{ isCompleted: 'asc' }, { createdAt: 'asc' }],
       });
 
+      const completed = todos.filter((t) => t.isCompleted).length;
+
       return {
         date,
         year: null,
         month: null,
         data: todos,
         total: todos.length,
+        completed,
+        rate: todos.length > 0 ? Math.round((completed / todos.length) * 100) : 0,
       };
     }
 
@@ -224,12 +228,16 @@ export class TodosService {
       orderBy: [{ date: 'asc' }, { isCompleted: 'asc' }, { createdAt: 'asc' }],
     });
 
+    const completed = todos.filter((t) => t.isCompleted).length;
+
     return {
       date: null,
       year: targetYear,
       month: targetMonth,
       data: todos,
       total: todos.length,
+      completed,
+      rate: todos.length > 0 ? Math.round((completed / todos.length) * 100) : 0,
     };
   }
 
@@ -326,7 +334,31 @@ export class TodosService {
       },
     });
 
-    return updated;
+    // 해당 날짜의 달성률 계산
+    const dateStart = new Date(todo.date);
+    dateStart.setHours(0, 0, 0, 0);
+    const dateEnd = new Date(dateStart);
+    dateEnd.setDate(dateEnd.getDate() + 1);
+
+    const dailyTodos = await this.prisma.todoInstance.findMany({
+      where: {
+        userId,
+        date: { gte: dateStart, lt: dateEnd },
+      },
+      select: { isCompleted: true },
+    });
+
+    const total = dailyTodos.length;
+    const completed = dailyTodos.filter((t) => t.isCompleted).length;
+
+    return {
+      ...updated,
+      dailyStats: {
+        total,
+        completed,
+        rate: total > 0 ? Math.round((completed / total) * 100) : 0,
+      },
+    };
   }
 
   /**
