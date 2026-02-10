@@ -6,6 +6,8 @@ import {
   WeeklyStatsResponseDto,
   DayOfWeekStatsDto,
   OverviewStatsResponseDto,
+  GrassDataDto,
+  GrassStatsResponseDto,
 } from './client/dto';
 
 @Injectable()
@@ -176,6 +178,90 @@ export class TodosStatsService {
       overallRate: user.totalTodos > 0 ? Math.round((user.completedTodos / user.totalTodos) * 100) : 0,
       currentStreak: user.currentStreak,
       bestStreak: user.bestStreak,
+    };
+  }
+
+  /**
+   * 달성률을 잔디 레벨(0~4)로 변환
+   */
+  private rateToLevel(rate: number): number {
+    if (rate === 0) return 0;
+    if (rate <= 25) return 1;
+    if (rate <= 50) return 2;
+    if (rate <= 75) return 3;
+    return 4;
+  }
+
+  /**
+   * 잔디 통계 (깃허브 잔디 스타일, 최근 6개월)
+   */
+  async getGrassStats(userId: string, months: number = 6): Promise<GrassStatsResponseDto> {
+    const now = new Date();
+    const endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const startDate = new Date(endDate);
+    startDate.setMonth(startDate.getMonth() - months);
+
+    const endOfDay = new Date(endDate);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    // 기간 내 모든 투두 조회
+    const todos = await this.prisma.todoInstance.findMany({
+      where: {
+        userId,
+        date: {
+          gte: startDate,
+          lte: endOfDay,
+        },
+      },
+      select: {
+        date: true,
+        isCompleted: true,
+      },
+    });
+
+    // 날짜별 그룹화
+    const dateMap = new Map<string, { total: number; completed: number }>();
+    todos.forEach((todo) => {
+      const dateKey = this.formatDate(todo.date);
+      const existing = dateMap.get(dateKey) || { total: 0, completed: 0 };
+      existing.total++;
+      if (todo.isCompleted) {
+        existing.completed++;
+      }
+      dateMap.set(dateKey, existing);
+    });
+
+    // 기간 내 모든 날짜에 대해 데이터 생성
+    const data: GrassDataDto[] = [];
+    const cursor = new Date(startDate);
+
+    while (cursor <= endDate) {
+      const dateKey = this.formatDate(cursor);
+      const stats = dateMap.get(dateKey);
+      const total = stats?.total || 0;
+      const completed = stats?.completed || 0;
+      const rate = total > 0 ? Math.round((completed / total) * 100) : 0;
+
+      data.push({
+        date: dateKey,
+        total,
+        completed,
+        rate,
+        level: total > 0 ? this.rateToLevel(rate) : 0,
+      });
+
+      cursor.setDate(cursor.getDate() + 1);
+    }
+
+    const activeDays = data.filter((d) => d.total > 0).length;
+    const totalDays = data.length;
+
+    return {
+      startDate: this.formatDate(startDate),
+      endDate: this.formatDate(endDate),
+      totalDays,
+      activeDays,
+      data,
     };
   }
 

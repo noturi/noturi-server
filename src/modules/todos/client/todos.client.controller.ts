@@ -30,6 +30,7 @@ import {
   MonthlyStatsResponseDto,
   WeeklyStatsResponseDto,
   OverviewStatsResponseDto,
+  GrassStatsResponseDto,
 } from './dto';
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 import { AuthenticatedRequest } from '../../../common/types/auth.types';
@@ -96,6 +97,16 @@ export class TodosClientController {
   @ApiResponse({ status: 200, description: '조회 성공', type: OverviewStatsResponseDto })
   async getOverviewStats(@Request() req: AuthenticatedRequest) {
     return this.todosStatsService.getOverviewStats(req.user.id);
+  }
+
+  @Get('stats/grass')
+  @ApiOperation({
+    summary: '잔디 통계 (깃허브 스타일)',
+    description: '최근 6개월간 일별 투두 달성률을 잔디 레벨(0~4)로 반환합니다.',
+  })
+  @ApiResponse({ status: 200, description: '조회 성공', type: GrassStatsResponseDto })
+  async getGrassStats(@Request() req: AuthenticatedRequest) {
+    return this.todosStatsService.getGrassStats(req.user.id);
   }
 
   @Get('templates')

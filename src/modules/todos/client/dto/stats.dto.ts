@@ -59,6 +59,40 @@ export class WeeklyStatsResponseDto {
   dailyBreakdown: DayOfWeekStatsDto[];
 }
 
+export class GrassDataDto {
+  @ApiProperty({ example: '2026-01-22', description: '날짜' })
+  date: string;
+
+  @ApiProperty({ example: 3, description: '전체 투두 수' })
+  total: number;
+
+  @ApiProperty({ example: 2, description: '완료한 투두 수' })
+  completed: number;
+
+  @ApiProperty({ example: 67, description: '달성률 (%)' })
+  rate: number;
+
+  @ApiProperty({ example: 2, description: '잔디 레벨 (0=없음, 1=1~25%, 2=26~50%, 3=51~75%, 4=76~100%)' })
+  level: number;
+}
+
+export class GrassStatsResponseDto {
+  @ApiProperty({ example: '2025-08-10', description: '시작 날짜' })
+  startDate: string;
+
+  @ApiProperty({ example: '2026-02-10', description: '종료 날짜' })
+  endDate: string;
+
+  @ApiProperty({ example: 185, description: '조회 기간 (일)' })
+  totalDays: number;
+
+  @ApiProperty({ example: 120, description: '투두가 있었던 날 수' })
+  activeDays: number;
+
+  @ApiProperty({ type: [GrassDataDto], description: '일별 잔디 데이터' })
+  data: GrassDataDto[];
+}
+
 export class OverviewStatsResponseDto {
   @ApiProperty({ example: 150, description: '전체 투두 수' })
   totalTodos: number;
