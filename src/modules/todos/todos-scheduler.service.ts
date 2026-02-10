@@ -28,12 +28,11 @@ export class TodosSchedulerService {
       yesterday.setDate(yesterday.getDate() - 1);
       const yesterdayEnd = new Date(today);
 
-      // 어제 날짜의 미완료 투두 중 이월 횟수가 3 미만인 것
+      // 어제 날짜의 미완료 투두
       const uncompletedTodos = await this.prisma.todoInstance.findMany({
         where: {
           date: { gte: yesterday, lt: yesterdayEnd },
           isCompleted: false,
-          carryOverCount: { lt: 3 },
         },
       });
 
