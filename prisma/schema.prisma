@@ -346,12 +346,13 @@ model TodoTemplate {
 
 // 날짜별 투두 인스턴스
 model TodoInstance {
-  id          String    @id @default(uuid())
-  title       String
-  description String?
-  date        DateTime // 해당 날짜 (00:00:00)
-  isCompleted Boolean   @default(false)
-  completedAt DateTime?
+  id             String    @id @default(uuid())
+  title          String
+  description    String?
+  date           DateTime // 해당 날짜 (00:00:00)
+  isCompleted    Boolean   @default(false)
+  completedAt    DateTime?
+  carryOverCount Int       @default(0) // 이월 횟수 (0=원본, 최대 3)
 
   template   TodoTemplate? @relation(fields: [templateId], references: [id], onDelete: Cascade)
   templateId String? // null이면 일회성 투두

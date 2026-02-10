@@ -23,6 +23,9 @@ export class ResponseTodoDto {
   @ApiProperty({ example: '550e8400-e29b-41d4-a716-446655440001', description: '템플릿 ID (일회성이면 null)', nullable: true })
   templateId: string | null;
 
+  @ApiProperty({ example: 0, description: '이월 횟수 (0=원본)' })
+  carryOverCount: number;
+
   @ApiProperty({ example: '2026-01-01T00:00:00.000Z', description: '생성 시간' })
   createdAt: Date;
 

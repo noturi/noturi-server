@@ -188,14 +188,9 @@ export class TodosService {
       const todos = await this.prisma.todoInstance.findMany({
         where: {
           userId,
-          OR: [
-            // 해당 날짜의 투두
-            { date: { gte: normalizedDate, lt: nextDay } },
-            // 과거 미완료 투두 (이월)
-            { date: { lt: normalizedDate }, isCompleted: false },
-          ],
+          date: { gte: normalizedDate, lt: nextDay },
         },
-        orderBy: [{ isCompleted: 'asc' }, { date: 'asc' }, { createdAt: 'asc' }],
+        orderBy: [{ isCompleted: 'asc' }, { createdAt: 'asc' }],
       });
 
       const completed = todos.filter((t) => t.isCompleted).length;

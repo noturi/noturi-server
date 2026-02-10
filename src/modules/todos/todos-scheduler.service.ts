@@ -15,6 +15,59 @@ export class TodosSchedulerService {
   ) {}
 
   /**
+   * 매일 자정에 어제 미완료 투두를 오늘로 이월 (최대 3회)
+   */
+  @Cron('1 0 * * *', { name: 'todo-carry-over-uncompleted' })
+  async carryOverUncompletedTodos() {
+    this.logger.log('미완료 투두 이월 시작');
+
+    try {
+      const now = new Date();
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const yesterday = new Date(today);
+      yesterday.setDate(yesterday.getDate() - 1);
+      const yesterdayEnd = new Date(today);
+
+      // 어제 날짜의 미완료 투두 중 이월 횟수가 3 미만인 것
+      const uncompletedTodos = await this.prisma.todoInstance.findMany({
+        where: {
+          date: { gte: yesterday, lt: yesterdayEnd },
+          isCompleted: false,
+          carryOverCount: { lt: 3 },
+        },
+      });
+
+      let totalCarriedOver = 0;
+
+      for (const todo of uncompletedTodos) {
+        await this.prisma.todoInstance.create({
+          data: {
+            title: todo.title,
+            description: todo.description,
+            date: today,
+            isCompleted: false,
+            carryOverCount: todo.carryOverCount + 1,
+            userId: todo.userId,
+            // templateId는 null로 설정 (unique 제약조건 충돌 방지)
+          },
+        });
+
+        // 통계 업데이트 (새 인스턴스이므로 totalTodos 증가)
+        await this.prisma.user.update({
+          where: { id: todo.userId },
+          data: { totalTodos: { increment: 1 } },
+        });
+
+        totalCarriedOver++;
+      }
+
+      this.logger.log(`미완료 투두 이월 완료: ${totalCarriedOver}개`);
+    } catch (error) {
+      this.logger.error('미완료 투두 이월 실패', error);
+    }
+  }
+
+  /**
    * 매일 자정에 7일치 반복 투두 인스턴스 생성
    */
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT, { name: 'todo-generate-daily-instances' })
@@ -26,10 +79,7 @@ export class TodosSchedulerService {
       const templates = await this.prisma.todoTemplate.findMany({
         where: {
           isActive: true,
-          OR: [
-            { endDate: null },
-            { endDate: { gte: new Date() } },
-          ],
+          OR: [{ endDate: null }, { endDate: { gte: new Date() } }],
         },
         select: {
           id: true,
