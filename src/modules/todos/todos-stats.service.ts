@@ -18,7 +18,10 @@ export class TodosStatsService {
    * 날짜를 YYYY-MM-DD 형식으로 포맷
    */
   private formatDate(date: Date): string {
-    return date.toISOString().split('T')[0];
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
   }
 
   /**
@@ -182,13 +185,13 @@ export class TodosStatsService {
   }
 
   /**
-   * 달성률을 잔디 레벨(0~4)로 변환
+   * 완료 개수를 잔디 레벨(0~4)로 변환
    */
-  private rateToLevel(rate: number): number {
-    if (rate === 0) return 0;
-    if (rate <= 25) return 1;
-    if (rate <= 50) return 2;
-    if (rate <= 75) return 3;
+  private completedToLevel(completed: number): number {
+    if (completed === 0) return 0;
+    if (completed <= 1) return 1;
+    if (completed <= 2) return 2;
+    if (completed <= 4) return 3;
     return 4;
   }
 
@@ -247,7 +250,7 @@ export class TodosStatsService {
         total,
         completed,
         rate,
-        level: total > 0 ? this.rateToLevel(rate) : 0,
+        level: this.completedToLevel(completed),
       });
 
       cursor.setDate(cursor.getDate() + 1);
@@ -302,32 +305,21 @@ export class TodosStatsService {
       dateMap.set(dateKey, existing);
     });
 
-    // 오늘부터 과거로 연속 달성일 계산
+    // 오늘부터 과거로 연속 달성일 계산 (투두 없는 날은 streak 끊김)
     let currentStreak = 0;
     const checkDate = new Date(today);
 
-    while (true) {
+    while (checkDate >= thirtyDaysAgo) {
       const dateKey = this.formatDate(checkDate);
       const stats = dateMap.get(dateKey);
 
-      // 해당 날짜에 투두가 없으면 스킵하고 계속
-      if (!stats || stats.total === 0) {
-        checkDate.setDate(checkDate.getDate() - 1);
-        // 30일 전까지만 확인
-        if (checkDate < thirtyDaysAgo) {
-          break;
-        }
-        continue;
-      }
-
-      // 100% 달성했으면 streak 증가
-      if (stats.completed === stats.total) {
-        currentStreak++;
-        checkDate.setDate(checkDate.getDate() - 1);
-      } else {
-        // 100% 미달성이면 streak 종료
+      // 투두가 없거나 100% 미달성이면 streak 종료
+      if (!stats || stats.total === 0 || stats.completed !== stats.total) {
         break;
       }
+
+      currentStreak++;
+      checkDate.setDate(checkDate.getDate() - 1);
     }
 
     // 현재 streak과 best streak 업데이트

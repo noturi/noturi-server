@@ -72,7 +72,7 @@ export class GrassDataDto {
   @ApiProperty({ example: 67, description: '달성률 (%)' })
   rate: number;
 
-  @ApiProperty({ example: 2, description: '잔디 레벨 (0=없음, 1=1~25%, 2=26~50%, 3=51~75%, 4=76~100%)' })
+  @ApiProperty({ example: 2, description: '잔디 레벨 (0=없음, 1=1개, 2=2개, 3=3~4개, 4=5개 이상)' })
   level: number;
 }
 
