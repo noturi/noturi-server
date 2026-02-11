@@ -138,6 +138,7 @@ model Memo {
   @@index([createdAt])
   @@index([userId, rating])
   @@index([userId, categoryId])
+  @@index([userId, updatedAt])
   @@map("memos")
 }
 
