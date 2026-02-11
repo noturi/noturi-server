@@ -34,8 +34,8 @@ export class QueryMemoDto {
   year?: number;
 
   @ApiProperty({
-    example: 4.5,
-    description: '평점으로 필터링 (1.0~5.0, 0.5 단위)',
+    example: 4.0,
+    description: '최소 평점 (1.0~5.0)',
     required: false,
   })
   @IsOptional()
@@ -43,7 +43,19 @@ export class QueryMemoDto {
   @IsNumber()
   @Min(1)
   @Max(5)
-  rating?: number;
+  minRating?: number;
+
+  @ApiProperty({
+    example: 5.0,
+    description: '최대 평점 (1.0~5.0)',
+    required: false,
+  })
+  @IsOptional()
+  @Transform(({ value }) => parseFloat(value))
+  @IsNumber()
+  @Min(1)
+  @Max(5)
+  maxRating?: number;
 
   @ApiProperty({
     example: 1,
