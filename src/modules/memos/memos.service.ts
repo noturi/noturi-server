@@ -40,11 +40,12 @@ export class MemosService {
   }
 
   async getMemos(userId: string, queryDto: QueryMemoDto) {
-    const { keyword, categoryId, year, page = 1, limit = 20 } = queryDto;
+    const { keyword, categoryId, year, rating, page = 1, limit = 20 } = queryDto;
 
     const where: Prisma.MemoWhereInput = {
       userId,
       ...(categoryId && { categoryId }),
+      ...(rating && { rating }),
       ...(keyword && {
         OR: [
           { title: { contains: keyword, mode: 'insensitive' as const } },
