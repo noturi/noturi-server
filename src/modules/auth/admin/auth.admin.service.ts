@@ -1,8 +1,9 @@
-import { Injectable, UnauthorizedException, ConflictException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, ConflictException, ForbiddenException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '../../../../prisma/prisma.service';
 import { AdminLoginDto, AdminRegisterDto } from './dto';
+import { UserRole } from '../../../common/enums/permissions.enum';
 
 const BCRYPT_SALT_ROUNDS = 12;
 
@@ -13,7 +14,11 @@ export class AdminAuthService {
     private jwtService: JwtService,
   ) {}
 
-  async registerAdmin(data: AdminRegisterDto) {
+  async registerAdmin(data: AdminRegisterDto, currentUser: { role: string }) {
+    // SUPER_ADMIN만 어드민 계정 생성 가능
+    if (currentUser.role !== UserRole.SUPER_ADMIN) {
+      throw new ForbiddenException('SUPER_ADMIN만 어드민 계정을 생성할 수 있습니다');
+    }
     // 이메일 중복 체크
     const existingUser = await this.prisma.user.findUnique({
       where: { email: data.email },
