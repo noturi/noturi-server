@@ -109,66 +109,58 @@ export class TodosService {
       return [];
     }
 
-    const instances: any[] = [];
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
+    // 생성 대상 날짜 목록 계산
+    const candidateDates: Date[] = [];
     for (let i = 0; i < daysAhead; i++) {
       const targetDate = new Date(today);
       targetDate.setDate(today.getDate() + i);
 
-      // 시작일 이전이면 스킵
-      if (targetDate < template.startDate) {
+      if (targetDate < template.startDate) continue;
+      if (template.endDate && targetDate > template.endDate) continue;
+      if (!this.isDateMatchingRecurrence(targetDate, template.recurrenceType as RecurrenceType, template.recurrenceDays))
         continue;
-      }
 
-      // 종료일 이후면 스킵
-      if (template.endDate && targetDate > template.endDate) {
-        continue;
-      }
-
-      // 반복 규칙에 맞는지 확인
-      if (!this.isDateMatchingRecurrence(
-        targetDate,
-        template.recurrenceType as RecurrenceType,
-        template.recurrenceDays,
-      )) {
-        continue;
-      }
-
-      // 이미 존재하는지 확인
-      const existing = await this.prisma.todoInstance.findUnique({
-        where: {
-          templateId_date: {
-            templateId,
-            date: targetDate,
-          },
-        },
-      });
-
-      if (existing) {
-        continue;
-      }
-
-      // 인스턴스 생성
-      const instance = await this.prisma.todoInstance.create({
-        data: {
-          title: template.title,
-          description: template.description,
-          date: targetDate,
-          templateId,
-          userId,
-        },
-      });
-
-      // 통계 업데이트
-      await this.prisma.user.update({
-        where: { id: userId },
-        data: { totalTodos: { increment: 1 } },
-      });
-
-      instances.push(instance);
+      candidateDates.push(targetDate);
     }
+
+    if (candidateDates.length === 0) return [];
+
+    // 이미 존재하는 인스턴스를 한 번에 조회
+    const existingInstances = await this.prisma.todoInstance.findMany({
+      where: { templateId, date: { in: candidateDates } },
+      select: { date: true },
+    });
+
+    const existingDates = new Set(existingInstances.map((e) => e.date.getTime()));
+    const newDates = candidateDates.filter((d) => !existingDates.has(d.getTime()));
+
+    if (newDates.length === 0) return [];
+
+    // 배치로 인스턴스 생성
+    await this.prisma.todoInstance.createMany({
+      data: newDates.map((date) => ({
+        title: template.title,
+        description: template.description,
+        date,
+        templateId,
+        userId,
+      })),
+    });
+
+    // 통계 한 번에 업데이트
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { totalTodos: { increment: newDates.length } },
+    });
+
+    // 생성된 인스턴스 조회하여 반환
+    const instances = await this.prisma.todoInstance.findMany({
+      where: { templateId, date: { in: newDates } },
+      orderBy: { date: 'asc' },
+    });
 
     return instances;
   }

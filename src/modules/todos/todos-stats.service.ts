@@ -275,23 +275,23 @@ export class TodosStatsService {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    // 최근 30일간 날짜별 달성률 확인
+    // 최근 30일간 날짜별 달성률 + 현재 bestStreak 병렬 조회
     const thirtyDaysAgo = new Date(today);
     thirtyDaysAgo.setDate(today.getDate() - 30);
 
-    const todos = await this.prisma.todoInstance.findMany({
-      where: {
-        userId,
-        date: {
-          gte: thirtyDaysAgo,
-          lte: today,
+    const [todos, user] = await Promise.all([
+      this.prisma.todoInstance.findMany({
+        where: {
+          userId,
+          date: { gte: thirtyDaysAgo, lte: today },
         },
-      },
-      select: {
-        date: true,
-        isCompleted: true,
-      },
-    });
+        select: { date: true, isCompleted: true },
+      }),
+      this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { bestStreak: true },
+      }),
+    ]);
 
     // 날짜별 그룹화
     const dateMap = new Map<string, { total: number; completed: number }>();
@@ -323,19 +323,11 @@ export class TodosStatsService {
     }
 
     // 현재 streak과 best streak 업데이트
-    const user = await this.prisma.user.findUnique({
-      where: { id: userId },
-      select: { bestStreak: true },
-    });
-
     const bestStreak = Math.max(currentStreak, user?.bestStreak || 0);
 
     await this.prisma.user.update({
       where: { id: userId },
-      data: {
-        currentStreak,
-        bestStreak,
-      },
+      data: { currentStreak, bestStreak },
     });
   }
 }
