@@ -209,7 +209,7 @@ export class StatisticsService {
       previousEndDate = new Date(year - 1, 11, 31, 23, 59, 59);
     }
 
-    // 해당 기간 메모 데이터
+    // 해당 기간 메모 데이터 (필요한 필드만 조회)
     const memos = await this.prisma.memo.findMany({
       where: {
         userId,
@@ -218,6 +218,7 @@ export class StatisticsService {
           lte: endDate,
         },
       },
+      select: { createdAt: true, rating: true },
       orderBy: { createdAt: 'asc' },
     });
 
@@ -324,33 +325,30 @@ export class StatisticsService {
     });
     const averageRating = avgRatingResult._avg.rating ? Math.round(Number(avgRatingResult._avg.rating) * 10) / 10 : 0;
 
-    // 일일 평균 계산
-    const firstMemo = await this.prisma.memo.findFirst({
-      where: { userId },
-      orderBy: { createdAt: 'asc' },
-    });
+    // 첫 메모, 마지막 메모 날짜 병렬 조회
+    const [firstMemo, lastMemo] = await Promise.all([
+      this.prisma.memo.findFirst({
+        where: { userId },
+        orderBy: { createdAt: 'asc' },
+        select: { createdAt: true },
+      }),
+      this.prisma.memo.findFirst({
+        where: { userId },
+        orderBy: { createdAt: 'desc' },
+        select: { createdAt: true },
+      }),
+    ]);
 
     const daysSinceFirst = firstMemo
       ? Math.ceil((now.getTime() - firstMemo.createdAt.getTime()) / (1000 * 60 * 60 * 24))
       : 1;
     const dailyAverage = Math.round((totalMemos / daysSinceFirst) * 10) / 10;
 
-    // 가장 최근 메모 날짜
-    const lastMemo = await this.prisma.memo.findFirst({
-      where: { userId },
-      orderBy: { createdAt: 'desc' },
-    });
-
     // 이번 달 활동 일수
-    const thisMonthMemoDates = await this.prisma.memo.findMany({
-      where: {
-        userId,
-        createdAt: { gte: thisMonthStart },
-      },
-      select: { createdAt: true },
-    });
-
-    const uniqueDates = new Set(thisMonthMemoDates.map((memo) => memo.createdAt.toISOString().split('T')[0]));
+    const activeDaysResult = await this.prisma.$queryRaw<[{ count: bigint }]>`
+      SELECT COUNT(DISTINCT DATE("createdAt")) as count FROM memos
+      WHERE "userId" = ${userId} AND "createdAt" >= ${thisMonthStart}
+    `;
 
     const growthRate =
       lastMonthMemos > 0
@@ -368,7 +366,7 @@ export class StatisticsService {
       averageRating,
       dailyAverage,
       lastMemoDate: lastMemo?.createdAt.toISOString().split('T')[0],
-      activeDaysThisMonth: uniqueDates.size,
+      activeDaysThisMonth: Number(activeDaysResult[0].count),
     };
   }
 
@@ -377,14 +375,17 @@ export class StatisticsService {
     const now = new Date();
     const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
 
-    // 카테고리별 전체 개수, 평균 평점, 마지막 메모만 조회 (N+1 방지)
-    const [categories, totalMemos, thisMonthCounts] = await Promise.all([
+    // 카테고리별 전체 개수, 마지막 메모 날짜만 조회 (N+1 방지)
+    const [categories, totalMemos, thisMonthCounts, avgRatings] = await Promise.all([
       this.prisma.category.findMany({
         where: { userId },
-        include: {
+        select: {
+          id: true,
+          name: true,
+          color: true,
           _count: { select: { memos: true } },
           memos: {
-            select: { rating: true, createdAt: true },
+            select: { createdAt: true },
             orderBy: { createdAt: 'desc' },
             take: 1,
           },
@@ -400,17 +401,16 @@ export class StatisticsService {
         },
         _count: true,
       }),
+      // 카테고리별 평균 평점 조회
+      this.prisma.memo.groupBy({
+        by: ['categoryId'],
+        where: {
+          userId,
+          rating: { not: null },
+        },
+        _avg: { rating: true },
+      }),
     ]);
-
-    // 카테고리별 평균 평점 조회
-    const avgRatings = await this.prisma.memo.groupBy({
-      by: ['categoryId'],
-      where: {
-        userId,
-        rating: { not: null },
-      },
-      _avg: { rating: true },
-    });
 
     const thisMonthMap = new Map(thisMonthCounts.map((c) => [c.categoryId, c._count]));
     const avgRatingMap = new Map(avgRatings.map((r) => [r.categoryId, Number(r._avg.rating) || 0]));
