@@ -36,18 +36,25 @@ export class NotificationsService {
     const oneMinuteAgo = new Date(now.getTime() - 60 * 1000);
 
     try {
-      // 알림이 필요한 캘린더 메모 조회
+      // 알림이 필요한 캘린더 메모 조회 (필요한 필드만 select)
       const pendingMemos = await this.prisma.calendarMemo.findMany({
         where: {
           hasNotification: true,
           notificationSent: false,
           startDate: { gte: oneMinuteAgo }, // 시작 시간이 1분 전 이후인 일정
         },
-        include: {
+        select: {
+          id: true,
+          title: true,
+          startDate: true,
+          notifyBefore: true,
+          isAllDay: true,
           user: {
-            include: {
+            select: {
+              id: true,
               devices: {
                 where: { isActive: true },
+                select: { expoPushToken: true },
               },
             },
           },
