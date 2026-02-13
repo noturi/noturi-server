@@ -15,64 +15,41 @@ export class StatisticsService {
     const start = startDate ? new Date(startDate) : defaultStartDate;
     const end = endDate ? new Date(endDate) : now;
 
-    // 전체 메모 개수
-    const totalMemos = await this.prisma.memo.count({
-      where: { userId },
-    });
-
-    // 전체 카테고리 개수
-    const totalCategories = await this.prisma.category.count({
-      where: { userId },
-    });
-
-    // 이번 달과 지난 달 메모 개수
     const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
     const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
     const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
 
-    const [thisMonthMemos, lastMonthMemos] = await Promise.all([
-      this.prisma.memo.count({
-        where: {
-          userId,
-          createdAt: {
-            gte: thisMonthStart,
+    // 독립적인 쿼리들을 모두 병렬 실행
+    const [totalMemos, totalCategories, thisMonthMemos, lastMonthMemos, categoryStats, periodStats, lastMemo] =
+      await Promise.all([
+        this.prisma.memo.count({ where: { userId } }),
+        this.prisma.category.count({ where: { userId } }),
+        this.prisma.memo.count({
+          where: { userId, createdAt: { gte: thisMonthStart } },
+        }),
+        this.prisma.memo.count({
+          where: { userId, createdAt: { gte: lastMonthStart, lte: lastMonthEnd } },
+        }),
+        this.prisma.category.findMany({
+          where: { userId },
+          select: {
+            id: true,
+            name: true,
+            color: true,
+            _count: { select: { memos: true } },
           },
-        },
-      }),
-      this.prisma.memo.count({
-        where: {
-          userId,
-          createdAt: {
-            gte: lastMonthStart,
-            lte: lastMonthEnd,
-          },
-        },
-      }),
-    ]);
+          orderBy: { memos: { _count: 'desc' } },
+        }),
+        this.getPeriodStatistics(userId, start, end, period || StatisticsPeriod.MONTHLY),
+        this.prisma.memo.findFirst({
+          where: { userId },
+          orderBy: { createdAt: 'desc' },
+          select: { createdAt: true },
+        }),
+      ]);
 
-    // 증감률 계산
     const growthRate =
       lastMonthMemos > 0 ? ((thisMonthMemos - lastMonthMemos) / lastMonthMemos) * 100 : thisMonthMemos > 0 ? 100 : 0;
-
-    // 카테고리별 통계
-    const categoryStats = await this.prisma.category.findMany({
-      where: { userId },
-      select: {
-        id: true,
-        name: true,
-        color: true,
-        _count: {
-          select: {
-            memos: true,
-          },
-        },
-      },
-      orderBy: {
-        memos: {
-          _count: 'desc',
-        },
-      },
-    });
 
     const categoryStatsWithPercentage = categoryStats.map((category) => ({
       id: category.id,
@@ -82,17 +59,6 @@ export class StatisticsService {
       percentage: totalMemos > 0 ? (category._count.memos / totalMemos) * 100 : 0,
     }));
 
-    // 기간별 통계
-    const periodStats = await this.getPeriodStatistics(userId, start, end, period || StatisticsPeriod.MONTHLY);
-
-    // 가장 최근 메모 작성일
-    const lastMemo = await this.prisma.memo.findFirst({
-      where: { userId },
-      orderBy: { createdAt: 'desc' },
-      select: { createdAt: true },
-    });
-
-    // 일일 평균 메모 작성 개수
     const daysDiff = Math.ceil((now.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
     const averageMemosPerDay = daysDiff > 0 ? totalMemos / daysDiff : 0;
 
