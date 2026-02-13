@@ -33,21 +33,14 @@ export class DashboardService {
           where: { role: UserRole.USER, createdAt: { gte: lastMonthStart, lt: thisMonthStart } },
         }),
         // 이번 주 메모 작성 유저 수
-        this.prisma.memo
-          .findMany({
-            where: { createdAt: { gte: weekStart } },
-            select: { userId: true },
-            distinct: ['userId'],
-          })
-          .then((rows) => rows.length),
+        this.prisma.$queryRaw<[{ count: bigint }]>`
+          SELECT COUNT(DISTINCT "userId") as count FROM memos WHERE "createdAt" >= ${weekStart}
+        `.then((rows) => Number(rows[0].count)),
         // 이번 주 투두 작성 유저 수
-        this.prisma.todoInstance
-          .findMany({
-            where: { createdAt: { gte: weekStart }, carryOverCount: 0 },
-            select: { userId: true },
-            distinct: ['userId'],
-          })
-          .then((rows) => rows.length),
+        this.prisma.$queryRaw<[{ count: bigint }]>`
+          SELECT COUNT(DISTINCT "userId") as count FROM todo_instances
+          WHERE "createdAt" >= ${weekStart} AND "carryOverCount" = 0
+        `.then((rows) => Number(rows[0].count)),
       ]);
 
     // MoM 신규가입 증가율
