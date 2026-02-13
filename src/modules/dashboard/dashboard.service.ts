@@ -13,22 +13,42 @@ export class DashboardService {
     const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
     const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 
-    const [totalUsers, totalMemos, activeUsers, newUsersThisMonth, newUsersLastMonth] = await Promise.all([
-      this.prisma.user.count({
-        where: { role: UserRole.USER },
-      }),
-      this.prisma.memo.count(),
-      // MAU: 최근 30일간 앱을 열어본 유저 수
-      this.prisma.user.count({
-        where: { role: UserRole.USER, lastActiveAt: { gte: thirtyDaysAgo } },
-      }),
-      this.prisma.user.count({
-        where: { role: UserRole.USER, createdAt: { gte: thisMonthStart } },
-      }),
-      this.prisma.user.count({
-        where: { role: UserRole.USER, createdAt: { gte: lastMonthStart, lt: thisMonthStart } },
-      }),
-    ]);
+    const weekStart = new Date(now);
+    weekStart.setDate(now.getDate() - now.getDay());
+    weekStart.setHours(0, 0, 0, 0);
+
+    const [totalUsers, activeUsers, newUsersThisMonth, newUsersLastMonth, weeklyMemoUsers, weeklyTodoUsers] =
+      await Promise.all([
+        this.prisma.user.count({
+          where: { role: UserRole.USER },
+        }),
+        // MAU: 최근 30일간 앱을 열어본 유저 수
+        this.prisma.user.count({
+          where: { role: UserRole.USER, lastActiveAt: { gte: thirtyDaysAgo } },
+        }),
+        this.prisma.user.count({
+          where: { role: UserRole.USER, createdAt: { gte: thisMonthStart } },
+        }),
+        this.prisma.user.count({
+          where: { role: UserRole.USER, createdAt: { gte: lastMonthStart, lt: thisMonthStart } },
+        }),
+        // 이번 주 메모 작성 유저 수
+        this.prisma.memo
+          .findMany({
+            where: { createdAt: { gte: weekStart } },
+            select: { userId: true },
+            distinct: ['userId'],
+          })
+          .then((rows) => rows.length),
+        // 이번 주 투두 작성 유저 수
+        this.prisma.todoInstance
+          .findMany({
+            where: { createdAt: { gte: weekStart }, carryOverCount: 0 },
+            select: { userId: true },
+            distinct: ['userId'],
+          })
+          .then((rows) => rows.length),
+      ]);
 
     // MoM 신규가입 증가율
     const userGrowthRate =
@@ -40,9 +60,10 @@ export class DashboardService {
 
     return {
       totalUsers,
-      totalMemos,
       activeUsers,
       userGrowthRate,
+      weeklyMemoUsers,
+      weeklyTodoUsers,
     };
   }
 
