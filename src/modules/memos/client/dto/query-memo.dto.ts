@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsBoolean, IsOptional, IsString, IsUUID, IsInt, IsNumber, Min, Max } from 'class-validator';
+import { IsIn, IsOptional, IsString, IsUUID, IsInt, IsNumber, Min, Max } from 'class-validator';
 import { Transform } from 'class-transformer';
 
 export class QueryMemoDto {
@@ -58,19 +58,14 @@ export class QueryMemoDto {
   maxRating?: number;
 
   @ApiProperty({
-    example: false,
-    description: '별점 여부 필터 (false: 별점 없는 메모만, true: 별점 있는 메모만)',
+    example: 'false',
+    description: "별점 여부 필터 ('false': 별점 없는 메모만, 'true': 별점 있는 메모만)",
     required: false,
+    enum: ['true', 'false'],
   })
   @IsOptional()
-  @Transform(({ obj }) => {
-    const raw = obj?.hasRating;
-    if (raw === 'true' || raw === true) return true;
-    if (raw === 'false' || raw === false) return false;
-    return undefined;
-  })
-  @IsBoolean()
-  hasRating?: boolean;
+  @IsIn(['true', 'false'])
+  hasRating?: 'true' | 'false';
 
   @ApiProperty({
     example: 1,

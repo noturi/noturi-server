@@ -46,8 +46,8 @@ export class MemosService {
     const where: Prisma.MemoWhereInput = {
       userId,
       ...(categoryId && { categoryId }),
-      ...(hasRating === false && { rating: null }),
-      ...(hasRating === true && { rating: { not: null } }),
+      ...(hasRating === 'false' && { rating: null }),
+      ...(hasRating === 'true' && { rating: { not: null } }),
       ...(hasRating === undefined && (minRating || maxRating) && {
         rating: {
           ...(minRating && { gte: minRating }),
