@@ -63,7 +63,12 @@ export class QueryMemoDto {
     required: false,
   })
   @IsOptional()
-  @Transform(({ value }) => value === 'true' || value === true)
+  @Transform(({ obj }) => {
+    const raw = obj?.hasRating;
+    if (raw === 'true' || raw === true) return true;
+    if (raw === 'false' || raw === false) return false;
+    return undefined;
+  })
   @IsBoolean()
   hasRating?: boolean;
 
