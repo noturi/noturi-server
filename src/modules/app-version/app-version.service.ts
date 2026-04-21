@@ -2,7 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { UpdateAppVersionDto } from './admin/dto/update-app-version.dto';
 
-const FIXED_APP_VERSION = '1.1.1';
+const FIXED_LATEST_VERSION = '1.3.0';
+const FIXED_MIN_VERSION = '1.0.0';
 const IOS_STORE_URL = 'https://apps.apple.com/app/noturi/id6752212896';
 
 @Injectable()
@@ -20,13 +21,13 @@ export class AppVersionService {
     if (!appVersion) {
       return {
         ios: {
-          latestVersion: FIXED_APP_VERSION,
-          minVersion: FIXED_APP_VERSION,
+          latestVersion: FIXED_LATEST_VERSION,
+          minVersion: FIXED_MIN_VERSION,
           storeUrl: IOS_STORE_URL,
         },
         android: {
-          latestVersion: FIXED_APP_VERSION,
-          minVersion: FIXED_APP_VERSION,
+          latestVersion: FIXED_LATEST_VERSION,
+          minVersion: FIXED_MIN_VERSION,
           storeUrl: '',
         },
       };
@@ -34,13 +35,13 @@ export class AppVersionService {
 
     return {
       ios: {
-        latestVersion: FIXED_APP_VERSION,
-        minVersion: FIXED_APP_VERSION,
+        latestVersion: FIXED_LATEST_VERSION,
+        minVersion: FIXED_MIN_VERSION,
         storeUrl: appVersion?.iosStoreUrl || IOS_STORE_URL,
       },
       android: {
-        latestVersion: FIXED_APP_VERSION,
-        minVersion: FIXED_APP_VERSION,
+        latestVersion: FIXED_LATEST_VERSION,
+        minVersion: FIXED_MIN_VERSION,
         storeUrl: appVersion?.androidStoreUrl ?? '',
       },
     };
