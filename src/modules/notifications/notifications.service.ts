@@ -30,7 +30,6 @@ export class NotificationsService {
   @Cron(CronExpression.EVERY_MINUTE, { name: 'check-notifications' })
   async checkAndSendNotifications() {
     const now = new Date();
-    this.logger.debug(`알림 체크 시작: ${now.toISOString()}`);
 
     // 시작 시간이 1분 전까지인 일정도 포함 (AT_START_TIME 알림 처리용)
     const oneMinuteAgo = new Date(now.getTime() - 60 * 1000);

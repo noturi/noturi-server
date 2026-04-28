@@ -325,7 +325,6 @@ export class AdminNotificationsService {
   @Cron(CronExpression.EVERY_MINUTE, { name: 'check-admin-notifications' })
   async checkAndSendScheduledNotifications() {
     const now = new Date();
-    this.logger.debug(`어드민 알림 체크 시작: ${now.toISOString()}`);
 
     try {
       // 1. 일회성 예약 알림 처리
@@ -402,8 +401,6 @@ export class AdminNotificationsService {
         OR: [{ repeatEndAt: null }, { repeatEndAt: { gte: now } }],
       },
     });
-
-    this.logger.debug(`조건에 맞는 반복 알림 수: ${repeatNotifications.length}`);
 
     for (const notification of repeatNotifications) {
       // 공휴일 건너뛰기
