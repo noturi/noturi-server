@@ -376,22 +376,6 @@ export class AdminNotificationsService {
     const currentDay = koreaTime.getUTCDay(); // 0=일, 1=월, ..., 6=토
     const currentTime = `${String(koreaTime.getUTCHours()).padStart(2, '0')}:${String(koreaTime.getUTCMinutes()).padStart(2, '0')}`;
 
-    this.logger.debug(
-      `반복 알림 체크 - UTC: ${now.toISOString()}, 한국시간: ${koreaTime.toISOString()}, 요일: ${currentDay}, 시간: ${currentTime}`,
-    );
-
-    // 디버깅: 모든 활성 반복 알림 조회
-    const allRepeatNotifications = await this.prisma.adminNotification.findMany({
-      where: {
-        isActive: true,
-        isRepeat: true,
-      },
-    });
-
-    this.logger.debug(
-      `활성 반복 알림 목록: ${allRepeatNotifications.map((n) => `[id=${n.id}, scheduledTime=${n.scheduledTime}, repeatDays=${JSON.stringify(n.repeatDays)}]`).join(', ') || '없음'}`,
-    );
-
     const repeatNotifications = await this.prisma.adminNotification.findMany({
       where: {
         isActive: true,

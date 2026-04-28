@@ -60,8 +60,6 @@ export class NotificationsService {
         },
       });
 
-      this.logger.debug(`대기 중인 알림 ${pendingMemos.length}개 발견`);
-
       for (const memo of pendingMemos) {
         // notifyBefore가 null이면 AT_START_TIME으로 처리
         const notifyBefore = memo.notifyBefore ?? 'AT_START_TIME';
