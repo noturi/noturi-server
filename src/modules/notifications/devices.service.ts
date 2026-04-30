@@ -7,7 +7,7 @@ export class DevicesService {
   constructor(private readonly prisma: PrismaService) {}
 
   async registerDevice(userId: string, dto: RegisterDeviceDto) {
-    return this.prisma.userDevice.upsert({
+    const device = await this.prisma.userDevice.upsert({
       where: { expoPushToken: dto.expoPushToken },
       update: {
         userId,
@@ -24,6 +24,14 @@ export class DevicesService {
         isActive: true,
       },
     });
+
+    await this.prisma.userSettings.upsert({
+      where: { userId },
+      create: { userId, notification: true },
+      update: { notification: true },
+    });
+
+    return device;
   }
 
   async getMyDevices(userId: string) {
@@ -40,11 +48,27 @@ export class DevicesService {
         userId,
       },
     });
+
+    const remaining = await this.prisma.userDevice.count({
+      where: { userId },
+    });
+
+    if (remaining === 0) {
+      await this.prisma.userSettings.updateMany({
+        where: { userId },
+        data: { notification: false },
+      });
+    }
   }
 
   async removeAllDevices(userId: string) {
     await this.prisma.userDevice.deleteMany({
       where: { userId },
+    });
+
+    await this.prisma.userSettings.updateMany({
+      where: { userId },
+      data: { notification: false },
     });
   }
 }

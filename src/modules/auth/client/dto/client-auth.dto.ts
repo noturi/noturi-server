@@ -107,6 +107,17 @@ export class RefreshTokenDto {
   refreshToken: string;
 }
 
+export class LogoutDto {
+  @ApiProperty({
+    description: '현재 디바이스의 Expo Push Token (선택)',
+    example: 'ExponentPushToken[xxxxxxxxxxxxxxxxxxxxxx]',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  expoPushToken?: string;
+}
+
 export class RefreshResponseDto {
   @ApiProperty({
     description: '인증 토큰',

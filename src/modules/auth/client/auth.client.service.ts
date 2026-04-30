@@ -1,4 +1,5 @@
 import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
+import { Theme, Language } from '@prisma/client';
 import { PrismaService } from '../../../../prisma/prisma.service';
 import { TokenService } from '../token.service';
 import { OAuthService } from './oauth.service';
@@ -42,6 +43,7 @@ export class ClientAuthService {
         });
 
         await this.createDefaultCategories(user.id);
+        await this.createDefaultUserSettings(user.id);
       } else if (!user.providers.includes('GOOGLE') || user.providerId !== oauthUser.providerId) {
         const updatedProviders = user.providers.includes('GOOGLE')
           ? user.providers
@@ -102,6 +104,7 @@ export class ClientAuthService {
         });
 
         await this.createDefaultCategories(user.id);
+        await this.createDefaultUserSettings(user.id);
       } else if (user && !user.providers.includes('APPLE')) {
         const updatedProviders = [...user.providers, 'APPLE' as const];
 
@@ -144,6 +147,29 @@ export class ClientAuthService {
     return { tokens };
   }
 
+  async logout(userId: string, expoPushToken?: string) {
+    if (!expoPushToken) {
+      return { success: true };
+    }
+
+    await this.prismaService.userDevice.deleteMany({
+      where: { userId, expoPushToken },
+    });
+
+    const remaining = await this.prismaService.userDevice.count({
+      where: { userId },
+    });
+
+    if (remaining === 0) {
+      await this.prismaService.userSettings.updateMany({
+        where: { userId },
+        data: { notification: false },
+      });
+    }
+
+    return { success: true };
+  }
+
   private async generateUniqueNickname(email: string): Promise<string> {
     const baseNickname = email.split('@')[0];
     let nickname = baseNickname;
@@ -179,6 +205,17 @@ export class ClientAuthService {
     });
   }
 
+  private async createDefaultUserSettings(userId: string) {
+    await this.prismaService.userSettings.create({
+      data: {
+        userId,
+        theme: Theme.light,
+        language: Language.ko,
+        notification: false,
+      },
+    });
+  }
+
   private buildAuthResponse(
     user: { id: string; email: string; name: string | null; nickname: string; avatarUrl: string | null },
     tokens: { accessToken: string; refreshToken: string },
@@ -188,9 +225,9 @@ export class ClientAuthService {
       user: {
         id: user.id,
         email: user.email,
-        name: user.name,
+        name: user.name ?? '',
         nickname: user.nickname,
-        avatarUrl: user.avatarUrl,
+        avatarUrl: user.avatarUrl ?? '',
       },
       tokens,
       isNewUser,

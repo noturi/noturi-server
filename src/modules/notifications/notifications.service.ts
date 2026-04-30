@@ -41,6 +41,9 @@ export class NotificationsService {
           hasNotification: true,
           notificationSent: false,
           startDate: { gte: oneMinuteAgo }, // 시작 시간이 1분 전 이후인 일정
+          user: {
+            settings: { notification: true },
+          },
         },
         select: {
           id: true,
@@ -141,7 +144,24 @@ export class NotificationsService {
       throw new Error(`Expo Push API 오류: ${JSON.stringify(result)}`);
     }
 
-    return result.data as ExpoPushTicket[];
+    const tickets = result.data as ExpoPushTicket[];
+
+    const invalidTokens: string[] = [];
+    tickets.forEach((ticket, i) => {
+      if (ticket.status === 'error' && ticket.details?.error === 'DeviceNotRegistered') {
+        invalidTokens.push(messages[i].to);
+      }
+    });
+
+    if (invalidTokens.length > 0) {
+      await this.prisma.userDevice.updateMany({
+        where: { expoPushToken: { in: invalidTokens } },
+        data: { isActive: false },
+      });
+      this.logger.log(`무효 토큰 ${invalidTokens.length}개 비활성화`);
+    }
+
+    return tickets;
   }
 
   /**
@@ -176,6 +196,16 @@ export class NotificationsService {
     body: string,
     data?: Record<string, any>,
   ): Promise<ExpoPushTicket[]> {
+    const settings = await this.prisma.userSettings.findUnique({
+      where: { userId },
+      select: { notification: true },
+    });
+
+    if (!settings?.notification) {
+      this.logger.log(`사용자 ${userId} 알림 비활성 - 발송 건너뜀`);
+      return [];
+    }
+
     const devices = await this.prisma.userDevice.findMany({
       where: { userId, isActive: true },
     });

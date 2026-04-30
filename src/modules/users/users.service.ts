@@ -26,7 +26,11 @@ export class UsersService {
       throw new NotFoundException(ERROR_MESSAGES.USER_NOT_FOUND);
     }
 
-    return user;
+    return {
+      ...user,
+      name: user.name ?? '',
+      avatarUrl: user.avatarUrl ?? '',
+    };
   }
 
   async getPublicUserProfile(userId: string) {
@@ -81,7 +85,7 @@ export class UsersService {
       }
     }
 
-    return this.prisma.user.update({
+    const updated = await this.prisma.user.update({
       where: { id: userId },
       data: {
         ...(nickname !== undefined && { nickname }),
@@ -97,6 +101,12 @@ export class UsersService {
         createdAt: true,
       },
     });
+
+    return {
+      ...updated,
+      name: updated.name ?? '',
+      avatarUrl: updated.avatarUrl ?? '',
+    };
   }
 
   async deleteUser(userId: string) {
@@ -119,14 +129,14 @@ export class UsersService {
       where: { userId },
     });
 
-    // 설정이 없으면 기본값으로 생성
+    // 설정이 없으면 기본값으로 생성 (디바이스 등록 전이므로 notification: false)
     if (!settings) {
       settings = await this.prisma.userSettings.create({
         data: {
           userId,
           theme: Theme.light,
           language: Language.ko,
-          notification: true,
+          notification: false,
         },
       });
     }
@@ -148,7 +158,7 @@ export class UsersService {
         userId,
         theme: theme ?? Theme.light,
         language: language ?? Language.ko,
-        notification: notification ?? true,
+        notification: notification ?? false,
       },
       update: {
         ...(theme !== undefined && { theme }),
