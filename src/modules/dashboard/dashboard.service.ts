@@ -63,7 +63,7 @@ export class DashboardService {
   async getRecentActivities() {
     const userSelect = { select: { nickname: true } };
 
-    const [recentUsers, recentMemos, recentCalendarMemos] = await Promise.all([
+    const [recentUsers, recentMemos, recentTodoInstances] = await Promise.all([
       this.prisma.user.findMany({
         where: { role: UserRole.USER },
         take: 10,
@@ -82,7 +82,8 @@ export class DashboardService {
           category: { select: { name: true } },
         },
       }),
-      this.prisma.calendarMemo.findMany({
+      this.prisma.todoInstance.findMany({
+        where: { carryOverCount: 0 },
         take: 10,
         orderBy: { createdAt: 'desc' },
         select: {
@@ -111,13 +112,13 @@ export class DashboardService {
           createdAt: memo.updatedAt,
         };
       }),
-      ...recentCalendarMemos.map((cm) => {
-        const isUpdate = cm.updatedAt.getTime() - cm.createdAt.getTime() > 1000;
+      ...recentTodoInstances.map((todo) => {
+        const isUpdate = todo.updatedAt.getTime() - todo.createdAt.getTime() > 1000;
         return {
-          type: isUpdate ? ActivityType.CALENDAR_MEMO_UPDATE : ActivityType.CALENDAR_MEMO_CREATION,
-          title: isUpdate ? '캘린더 메모 수정' : '캘린더 메모 작성',
-          description: `${cm.title} (by ${cm.user.nickname})`,
-          createdAt: cm.updatedAt,
+          type: isUpdate ? ActivityType.TODO_UPDATE : ActivityType.TODO_CREATION,
+          title: isUpdate ? '투두 수정' : '투두 작성',
+          description: `${todo.title} (by ${todo.user.nickname})`,
+          createdAt: todo.updatedAt,
         };
       }),
     ]
