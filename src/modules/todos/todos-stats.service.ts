@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
+import { startOfDay, endOfDay } from '../../common/utils/date.utils';
 import {
   DailyStatsDto,
   MonthlyStatsResponseDto,
@@ -85,8 +86,7 @@ export class TodosStatsService {
    * 주간 통계 (이번 주 달성률, 요일별)
    */
   async getWeeklyStats(userId: string): Promise<WeeklyStatsResponseDto> {
-    const now = new Date();
-    now.setHours(0, 0, 0, 0);
+    const now = startOfDay(new Date());
 
     // 이번 주 일요일 찾기
     const dayOfWeek = now.getDay();
@@ -94,9 +94,8 @@ export class TodosStatsService {
     weekStart.setDate(now.getDate() - dayOfWeek);
 
     // 이번 주 토요일
-    const weekEnd = new Date(weekStart);
+    const weekEnd = endOfDay(weekStart);
     weekEnd.setDate(weekStart.getDate() + 6);
-    weekEnd.setHours(23, 59, 59, 999);
 
     // 이번 주 모든 투두 조회
     const todos = await this.prisma.todoInstance.findMany({
@@ -204,8 +203,7 @@ export class TodosStatsService {
     const startDate = new Date(endDate);
     startDate.setMonth(startDate.getMonth() - months);
 
-    const endOfDay = new Date(endDate);
-    endOfDay.setHours(23, 59, 59, 999);
+    const endDateEnd = endOfDay(endDate);
 
     // 기간 내 모든 투두 조회
     const todos = await this.prisma.todoInstance.findMany({
@@ -213,7 +211,7 @@ export class TodosStatsService {
         userId,
         date: {
           gte: startDate,
-          lte: endOfDay,
+          lte: endDateEnd,
         },
       },
       select: {
@@ -272,8 +270,7 @@ export class TodosStatsService {
    * 연속 달성일 업데이트 (매일 자정 또는 투두 완료 시 호출)
    */
   async updateStreak(userId: string): Promise<void> {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const today = startOfDay(new Date());
 
     // 최근 30일간 날짜별 달성률 + 현재 bestStreak 병렬 조회
     const thirtyDaysAgo = new Date(today);

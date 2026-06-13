@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { UserRole } from '../../common/enums/permissions.enum';
 import { ActivityType } from '../../common/enums/activity-type.enum';
+import { startOfDay } from '../../common/utils/date.utils';
 
 @Injectable()
 export class DashboardService {
@@ -13,9 +14,8 @@ export class DashboardService {
     const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
     const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 
-    const weekStart = new Date(now);
+    const weekStart = startOfDay(now);
     weekStart.setDate(now.getDate() - now.getDay());
-    weekStart.setHours(0, 0, 0, 0);
 
     const [totalUsers, activeUsers, newUsersThisMonth, newUsersLastMonth, weeklyMemoUsers, weeklyTodoUsers] =
       await Promise.all([

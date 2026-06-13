@@ -109,21 +109,6 @@ export class StatisticsService {
     }));
   }
 
-  private getDateFormat(period: StatisticsPeriod): string {
-    switch (period) {
-      case StatisticsPeriod.DAILY:
-        return 'YYYY-MM-DD';
-      case StatisticsPeriod.WEEKLY:
-        return 'YYYY-WW';
-      case StatisticsPeriod.MONTHLY:
-        return 'YYYY-MM';
-      case StatisticsPeriod.YEARLY:
-        return 'YYYY';
-      default:
-        return 'YYYY-MM';
-    }
-  }
-
   private formatDateByPeriod(date: Date, period: StatisticsPeriod): string {
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');

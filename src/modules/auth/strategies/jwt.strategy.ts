@@ -5,6 +5,7 @@ import { ExtractJwt, Strategy } from 'passport-jwt';
 import { PrismaService } from '../../../../prisma/prisma.service';
 import { USER_PROFILE_SELECT } from '../../../common/constants/prisma-selects';
 import { ERROR_MESSAGES } from '../../../common/constants/error-messages';
+import { startOfDay } from '../../../common/utils/date.utils';
 
 export interface JwtPayload {
   sub: string;
@@ -38,8 +39,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     }
 
     // 하루에 한 번만 lastActiveAt 갱신
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const today = startOfDay(new Date());
     if (!user.lastActiveAt || user.lastActiveAt < today) {
       this.prisma.user.update({
         where: { id: payload.sub },

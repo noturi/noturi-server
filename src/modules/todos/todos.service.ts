@@ -2,19 +2,11 @@ import { Injectable, NotFoundException, BadRequestException } from '@nestjs/comm
 import { PrismaService } from '../../../prisma/prisma.service';
 import { CreateTodoDto, UpdateTodoDto, UpdateTemplateDto, QueryTodoDto } from './client/dto';
 import { RecurrenceType } from './enums/recurrence-type.enum';
+import { startOfDay } from '../../common/utils/date.utils';
 
 @Injectable()
 export class TodosService {
   constructor(private readonly prisma: PrismaService) {}
-
-  /**
-   * 날짜를 00:00:00.000으로 정규화
-   */
-  private normalizeDate(dateString: string): Date {
-    const date = new Date(dateString);
-    date.setHours(0, 0, 0, 0);
-    return date;
-  }
 
   /**
    * 특정 날짜가 반복 규칙에 해당하는지 확인
@@ -46,7 +38,7 @@ export class TodosService {
    */
   async createTodo(userId: string, createTodoDto: CreateTodoDto) {
     const { title, description, date, recurrenceType, recurrenceDays, endDate } = createTodoDto;
-    const normalizedDate = this.normalizeDate(date);
+    const normalizedDate = startOfDay(date);
 
     // 일회성 투두
     if (!recurrenceType || recurrenceType === RecurrenceType.NONE) {
@@ -83,7 +75,7 @@ export class TodosService {
         recurrenceType,
         recurrenceDays: recurrenceDays || [],
         startDate: normalizedDate,
-        endDate: endDate ? this.normalizeDate(endDate) : null,
+        endDate: endDate ? startOfDay(endDate) : null,
         userId,
       },
     });
@@ -109,8 +101,7 @@ export class TodosService {
       return [];
     }
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const today = startOfDay(new Date());
 
     // 생성 대상 날짜 목록 계산
     const candidateDates: Date[] = [];
@@ -173,7 +164,7 @@ export class TodosService {
 
     // 특정 날짜 조회
     if (date) {
-      const normalizedDate = this.normalizeDate(date);
+      const normalizedDate = startOfDay(date);
       const nextDay = new Date(normalizedDate);
       nextDay.setDate(nextDay.getDate() + 1);
 
@@ -324,8 +315,7 @@ export class TodosService {
     });
 
     // 해당 날짜의 달성률 계산
-    const dateStart = new Date(todo.date);
-    dateStart.setHours(0, 0, 0, 0);
+    const dateStart = startOfDay(todo.date);
     const dateEnd = new Date(dateStart);
     dateEnd.setDate(dateEnd.getDate() + 1);
 
@@ -395,7 +385,7 @@ export class TodosService {
         ...(description !== undefined && { description }),
         ...(recurrenceType !== undefined && { recurrenceType }),
         ...(recurrenceDays !== undefined && { recurrenceDays }),
-        ...(endDate !== undefined && { endDate: this.normalizeDate(endDate) }),
+        ...(endDate !== undefined && { endDate: startOfDay(endDate) }),
         ...(isActive !== undefined && { isActive }),
       },
     });
@@ -407,8 +397,7 @@ export class TodosService {
   async deleteTemplate(userId: string, templateId: string) {
     await this.getTemplateById(userId, templateId);
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const today = startOfDay(new Date());
 
     // 미래 인스턴스 카운트 (통계 업데이트용)
     const futureInstances = await this.prisma.todoInstance.findMany({

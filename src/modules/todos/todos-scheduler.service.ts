@@ -3,6 +3,7 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { TodosService } from './todos.service';
 import { TodosStatsService } from './todos-stats.service';
+import { endOfDay } from '../../common/utils/date.utils';
 
 @Injectable()
 export class TodosSchedulerService {
@@ -133,9 +134,8 @@ export class TodosSchedulerService {
     this.logger.log('만료된 템플릿 비활성화 시작');
 
     try {
-      const yesterday = new Date();
+      const yesterday = endOfDay(new Date());
       yesterday.setDate(yesterday.getDate() - 1);
-      yesterday.setHours(23, 59, 59, 999);
 
       const result = await this.prisma.todoTemplate.updateMany({
         where: {
