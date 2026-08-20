@@ -10,7 +10,9 @@ import {
   Max,
   Matches,
   IsObject,
+  IsEnum,
 } from 'class-validator';
+import { NotificationRepeatType } from '../enums/notification-repeat-type.enum';
 
 export class UpdateAdminNotificationDto {
   @ApiProperty({ example: '새로운 기능 출시!', description: '알림 제목', required: false })
@@ -81,16 +83,35 @@ export class UpdateAdminNotificationDto {
   isRepeat?: boolean;
 
   @ApiProperty({
+    enum: NotificationRepeatType,
+    example: NotificationRepeatType.WEEKLY,
+    description: '반복 주기 (WEEKLY=매주 요일, MONTHLY=매월 날짜)',
+    required: false,
+  })
+  @IsOptional()
+  @IsEnum(NotificationRepeatType)
+  repeatType?: NotificationRepeatType;
+
+  @ApiProperty({
     example: [1, 2, 3, 4, 5],
-    description: '반복 요일 (0=일, 1=월, 2=화, 3=수, 4=목, 5=금, 6=토)',
+    description: 'WEEKLY: 반복 요일 (0=일 ~ 6=토), MONTHLY: 반복 날짜 (1~31)',
     required: false,
   })
   @IsOptional()
   @IsArray()
   @IsInt({ each: true })
   @Min(0, { each: true })
-  @Max(6, { each: true })
+  @Max(31, { each: true })
   repeatDays?: number[];
+
+  @ApiProperty({
+    example: false,
+    description: 'MONTHLY: 해당 날짜가 없는 달은 말일에 발송',
+    required: false,
+  })
+  @IsOptional()
+  @IsBoolean()
+  sendOnLastDay?: boolean;
 
   @ApiProperty({
     example: '2024-12-31T23:59:59.000Z',

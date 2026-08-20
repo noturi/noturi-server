@@ -47,8 +47,14 @@ export class AdminNotificationResponseDto {
   @ApiProperty({ example: false })
   isRepeat: boolean;
 
-  @ApiProperty({ example: [1, 2, 3, 4, 5], description: '반복 요일' })
+  @ApiProperty({ example: 'WEEKLY', description: '반복 주기 (WEEKLY=매주 요일, MONTHLY=매월 날짜)' })
+  repeatType: string;
+
+  @ApiProperty({ example: [1, 2, 3, 4, 5], description: 'WEEKLY: 반복 요일 (0=일 ~ 6=토), MONTHLY: 반복 날짜 (1~31)' })
   repeatDays: number[];
+
+  @ApiProperty({ example: false, description: 'MONTHLY: 해당 날짜가 없는 달은 말일에 발송' })
+  sendOnLastDay: boolean;
 
   @ApiProperty({ example: '2024-12-31T23:59:59.000Z', required: false })
   repeatEndAt?: Date;

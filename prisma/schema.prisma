@@ -21,6 +21,11 @@ enum RecurrenceType {
   MONTHLY
 }
 
+enum NotificationRepeatType {
+  WEEKLY
+  MONTHLY
+}
+
 enum UserRole {
   USER
   ADMIN
@@ -265,10 +270,12 @@ model AdminNotification {
   scheduledTime String?   // 반복시 매일 발송할 시간 (HH:mm 형식)
 
   // 반복 설정
-  isRepeat     Boolean   @default(false)
-  repeatDays   Int[]     // 반복 요일 (0=일, 1=월, 2=화, 3=수, 4=목, 5=금, 6=토)
-  repeatEndAt  DateTime? // 반복 종료일
-  skipHolidays Boolean   @default(false) // 공휴일 건너뛰기
+  isRepeat      Boolean                @default(false)
+  repeatType    NotificationRepeatType @default(WEEKLY) // 반복 주기 (WEEKLY=매주 요일, MONTHLY=매월 날짜)
+  repeatDays    Int[]                  // WEEKLY: 요일 (0=일 ~ 6=토), MONTHLY: 날짜 (1~31)
+  sendOnLastDay Boolean                @default(false) // MONTHLY: 해당 날짜가 없는 달은 말일에 발송
+  repeatEndAt   DateTime? // 반복 종료일
+  skipHolidays  Boolean   @default(false) // 공휴일 건너뛰기
 
   // 상태
   isActive   Boolean   @default(true) // 활성화 여부 (반복 알림 중지용)

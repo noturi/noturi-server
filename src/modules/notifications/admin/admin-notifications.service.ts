@@ -1,11 +1,40 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../../../prisma/prisma.service';
 import { NotificationsService } from '../notifications.service';
 import { CreateAdminNotificationDto, UpdateAdminNotificationDto, AdminNotificationQueryDto } from './dto';
+import { NotificationRepeatType } from './enums/notification-repeat-type.enum';
 import { ERROR_MESSAGES } from '../../../common/constants/error-messages';
 import { isKoreanHoliday } from '../../../common/utils/korean-holidays.util';
+
+/**
+ * 반복 알림 발송 여부 판정 (순수 함수)
+ * @param koreaTime KST로 보정된 Date (getUTC* 계열로 읽어야 함)
+ */
+export function shouldSendRepeatNotification(
+  koreaTime: Date,
+  notification: { repeatType: NotificationRepeatType | string; repeatDays: number[]; sendOnLastDay: boolean },
+): boolean {
+  if (notification.repeatType !== NotificationRepeatType.MONTHLY) {
+    // WEEKLY: 요일 매칭 (0=일 ~ 6=토)
+    return notification.repeatDays.includes(koreaTime.getUTCDay());
+  }
+
+  // MONTHLY: 날짜 매칭 (1~31)
+  const dayOfMonth = koreaTime.getUTCDate();
+  if (notification.repeatDays.includes(dayOfMonth)) {
+    return true;
+  }
+
+  // 말일 대체: 오늘이 말일이고, 선택 날짜 중 이번 달에 존재하지 않는 날짜가 있는 경우
+  const lastDayOfMonth = new Date(Date.UTC(koreaTime.getUTCFullYear(), koreaTime.getUTCMonth() + 1, 0)).getUTCDate();
+  return (
+    notification.sendOnLastDay &&
+    dayOfMonth === lastDayOfMonth &&
+    notification.repeatDays.some((d) => d > lastDayOfMonth)
+  );
+}
 
 @Injectable()
 export class AdminNotificationsService {
@@ -40,6 +69,11 @@ export class AdminNotificationsService {
       ...(dto.linkUrl && { linkUrl: dto.linkUrl }),
     };
 
+    const repeatType = dto.repeatType ?? NotificationRepeatType.WEEKLY;
+    if (dto.isRepeat) {
+      this.validateRepeatConfig(repeatType, dto.repeatDays ?? []);
+    }
+
     // 예약 또는 반복 알림 - DB에 저장
     const notification = await this.prisma.adminNotification.create({
       data: {
@@ -50,7 +84,9 @@ export class AdminNotificationsService {
         scheduledAt: dto.scheduledAt ? new Date(dto.scheduledAt) : null,
         scheduledTime: dto.scheduledTime,
         isRepeat: dto.isRepeat ?? false,
+        repeatType,
         repeatDays: dto.repeatDays ?? [],
+        sendOnLastDay: dto.sendOnLastDay ?? false,
         repeatEndAt: dto.repeatEndAt ? new Date(dto.repeatEndAt) : null,
         skipHolidays: dto.skipHolidays ?? false,
         createdBy: adminId,
@@ -61,6 +97,27 @@ export class AdminNotificationsService {
       ...notification,
       targetUserCount: dto.targetUserIds.length,
     };
+  }
+
+  /**
+   * 반복 설정 검증 (WEEKLY: 요일 0~6, MONTHLY: 날짜 1~31)
+   */
+  private validateRepeatConfig(repeatType: NotificationRepeatType, repeatDays: number[]) {
+    if (repeatType === NotificationRepeatType.MONTHLY) {
+      if (repeatDays.length === 0) {
+        throw new BadRequestException('월간 반복의 경우 날짜를 선택해야 합니다');
+      }
+      if (repeatDays.some((d) => d < 1 || d > 31)) {
+        throw new BadRequestException('월간 반복 날짜는 1~31 사이여야 합니다');
+      }
+    } else {
+      if (repeatDays.length === 0) {
+        throw new BadRequestException('주간 반복의 경우 요일을 선택해야 합니다');
+      }
+      if (repeatDays.some((d) => d < 0 || d > 6)) {
+        throw new BadRequestException('주간 반복 요일은 0(일)~6(토) 사이여야 합니다');
+      }
+    }
   }
 
   /**
@@ -179,6 +236,14 @@ export class AdminNotificationsService {
       throw new NotFoundException(ERROR_MESSAGES.NOTIFICATION_NOT_FOUND);
     }
 
+    // 수정 후 최종 상태 기준으로 반복 설정 검증
+    const finalIsRepeat = dto.isRepeat ?? existing.isRepeat;
+    const finalRepeatType = dto.repeatType ?? (existing.repeatType as NotificationRepeatType);
+    const finalRepeatDays = dto.repeatDays ?? existing.repeatDays;
+    if (finalIsRepeat) {
+      this.validateRepeatConfig(finalRepeatType, finalRepeatDays);
+    }
+
     // data 또는 linkUrl이 변경되면 병합
     let updatedData = undefined;
     if (dto.data !== undefined || dto.linkUrl !== undefined) {
@@ -201,7 +266,9 @@ export class AdminNotificationsService {
         }),
         ...(dto.scheduledTime !== undefined && { scheduledTime: dto.scheduledTime }),
         ...(dto.isRepeat !== undefined && { isRepeat: dto.isRepeat }),
+        ...(dto.repeatType !== undefined && { repeatType: dto.repeatType }),
         ...(dto.repeatDays !== undefined && { repeatDays: dto.repeatDays }),
+        ...(dto.sendOnLastDay !== undefined && { sendOnLastDay: dto.sendOnLastDay }),
         ...(dto.repeatEndAt !== undefined && {
           repeatEndAt: dto.repeatEndAt ? new Date(dto.repeatEndAt) : null,
         }),
@@ -373,18 +440,19 @@ export class AdminNotificationsService {
   private async processRepeatNotifications(now: Date) {
     // 서버가 UTC로 동작하므로 한국 시간대(KST, UTC+9)로 변환
     const koreaTime = new Date(now.getTime() + 9 * 60 * 60 * 1000);
-    const currentDay = koreaTime.getUTCDay(); // 0=일, 1=월, ..., 6=토
     const currentTime = `${String(koreaTime.getUTCHours()).padStart(2, '0')}:${String(koreaTime.getUTCMinutes()).padStart(2, '0')}`;
 
-    const repeatNotifications = await this.prisma.adminNotification.findMany({
+    const candidates = await this.prisma.adminNotification.findMany({
       where: {
         isActive: true,
         isRepeat: true,
-        repeatDays: { has: currentDay },
         scheduledTime: currentTime,
         OR: [{ repeatEndAt: null }, { repeatEndAt: { gte: now } }],
       },
     });
+
+    // 요일(WEEKLY)/날짜(MONTHLY) 매칭 및 말일 대체 판정
+    const repeatNotifications = candidates.filter((n) => shouldSendRepeatNotification(koreaTime, n));
 
     for (const notification of repeatNotifications) {
       // 공휴일 건너뛰기
