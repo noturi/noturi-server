@@ -170,7 +170,7 @@ model RefreshToken {
   token          String    @unique /// 토큰 SHA-256 해시
   user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId         String
-  familyId       String    @default(uuid()) /// 세션 ID (액세스 토큰의 sid)
+  familyId       String    @default(dbgenerated("(gen_random_uuid())::text")) /// 세션 ID (액세스 토큰의 sid) — DB 기본값이라 기존 행이 있어도 컬럼 추가 가능
   parentFamilyId String? /// 위젯 세션이면 발급한 앱 세션 ID
   clientType     String    @default("app") /// app | widget
   createdAt      DateTime  @default(now())
