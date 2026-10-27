@@ -1,5 +1,5 @@
 import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
-import { Theme, Language } from '@prisma/client';
+import { Theme, Language, Prisma } from '@prisma/client';
 import { PrismaService } from '../../../../prisma/prisma.service';
 import { TokenService } from '../token.service';
 import { OAuthService } from './oauth.service';
@@ -31,19 +31,14 @@ export class ClientAuthService {
         isNewUser = true;
         const nickname = await this.generateUniqueNickname(oauthUser.email);
 
-        user = await this.prismaService.user.create({
-          data: {
-            email: oauthUser.email,
-            nickname,
-            name: oauthUser.name || nickname,
-            providers: ['GOOGLE'],
-            providerId: oauthUser.providerId,
-            avatarUrl: oauthUser.avatarUrl,
-          },
+        user = await this.createUserWithDefaults({
+          email: oauthUser.email,
+          nickname,
+          name: oauthUser.name || nickname,
+          providers: ['GOOGLE'],
+          providerId: oauthUser.providerId,
+          avatarUrl: oauthUser.avatarUrl,
         });
-
-        await this.createDefaultCategories(user.id);
-        await this.createDefaultUserSettings(user.id);
       } else if (!user.providers.includes('GOOGLE') || user.providerId !== oauthUser.providerId) {
         const updatedProviders = user.providers.includes('GOOGLE')
           ? user.providers
@@ -73,19 +68,20 @@ export class ClientAuthService {
     try {
       const tokenInfo = await this.oauthService.verifyAppleToken(appleLoginDto.idToken);
 
-      // 우선순위: DTO에서 전송된 값 > 토큰에서 추출된 값
-      const appleId = appleLoginDto.appleId || appleLoginDto.user || tokenInfo.providerId;
-      const userEmail = appleLoginDto.email || tokenInfo.email;
+      // 신원(sub/email)은 서명 검증된 토큰 값만 사용 — 바디 값은 위조 가능하므로 이름에만 사용
+      const appleId = tokenInfo.providerId;
+      const userEmail = tokenInfo.email;
       const userName = appleLoginDto.name || appleLoginDto.fullName;
 
-      if (!userEmail && !appleId) {
+      if (!appleId) {
         throw new UnauthorizedException('Apple 사용자 정보를 가져올 수 없습니다.');
       }
 
+      // { email: undefined }는 Prisma에서 조건 없음(전체 매칭)이 되므로 값이 있을 때만 조건에 넣는다
       let isNewUser = false;
       let user = await this.prismaService.user.findFirst({
         where: {
-          OR: [{ providerId: appleId }, { email: userEmail }],
+          OR: [{ providerId: appleId }, ...(userEmail ? [{ email: userEmail }] : [])],
         },
       });
 
@@ -93,18 +89,13 @@ export class ClientAuthService {
         isNewUser = true;
         const nickname = await this.generateUniqueNickname(userEmail);
 
-        user = await this.prismaService.user.create({
-          data: {
-            email: userEmail,
-            nickname,
-            name: userName || nickname,
-            providers: ['APPLE'],
-            providerId: appleId,
-          },
+        user = await this.createUserWithDefaults({
+          email: userEmail,
+          nickname,
+          name: userName || nickname,
+          providers: ['APPLE'],
+          providerId: appleId,
         });
-
-        await this.createDefaultCategories(user.id);
-        await this.createDefaultUserSettings(user.id);
       } else if (user && !user.providers.includes('APPLE')) {
         const updatedProviders = [...user.providers, 'APPLE' as const];
 
@@ -128,7 +119,9 @@ export class ClientAuthService {
       if (error instanceof UnauthorizedException) {
         throw error;
       }
-      throw new UnauthorizedException(`Apple 로그인에 실패했습니다: ${error.message}`);
+      // 내부 에러 메시지(Prisma 등)는 로그로만 남기고 응답에는 노출하지 않는다
+      this.logger.warn(`Apple 로그인 처리 오류: ${error.message}`);
+      throw new UnauthorizedException('Apple 로그인에 실패했습니다.');
     }
   }
 
@@ -183,37 +176,48 @@ export class ClientAuthService {
     return nickname;
   }
 
-  private async createDefaultCategories(userId: string) {
-    const activeDefaults = await this.categoriesAdminService.getActiveDefaultCategories();
+  /**
+   * 사용자 + 기본 카테고리 + 기본 설정을 한 트랜잭션으로 생성
+   * (중간에 실패하면 카테고리 없는 계정이 남고, 다음 로그인은 기존 사용자로 처리되어 복구되지 않음)
+   */
+  private async createUserWithDefaults(data: Prisma.UserCreateInput) {
+    const defaultCategories = await this.getDefaultCategories();
 
-    // DB에 기본 카테고리가 없는 경우 하드코딩된 기본값 사용
-    const categories =
-      activeDefaults.length > 0
-        ? activeDefaults
-        : [
-            { name: '영화', color: '#FF6B6B' },
-            { name: '음악', color: '#45B7D1' },
-            { name: '책', color: '#4ECDC4' },
-          ];
+    return this.prismaService.$transaction(async (tx) => {
+      const user = await tx.user.create({ data });
 
-    await this.prismaService.category.createMany({
-      data: categories.map((category) => ({
-        name: category.name,
-        color: category.color,
-        userId,
-      })),
+      await tx.category.createMany({
+        data: defaultCategories.map((category) => ({
+          name: category.name,
+          color: category.color,
+          userId: user.id,
+        })),
+      });
+
+      await tx.userSettings.create({
+        data: {
+          userId: user.id,
+          theme: Theme.light,
+          language: Language.ko,
+          notification: false,
+        },
+      });
+
+      return user;
     });
   }
 
-  private async createDefaultUserSettings(userId: string) {
-    await this.prismaService.userSettings.create({
-      data: {
-        userId,
-        theme: Theme.light,
-        language: Language.ko,
-        notification: false,
-      },
-    });
+  private async getDefaultCategories(): Promise<{ name: string; color: string }[]> {
+    const activeDefaults = await this.categoriesAdminService.getActiveDefaultCategories();
+
+    // DB에 기본 카테고리가 없는 경우 하드코딩된 기본값 사용
+    return activeDefaults.length > 0
+      ? activeDefaults
+      : [
+          { name: '영화', color: '#FF6B6B' },
+          { name: '음악', color: '#45B7D1' },
+          { name: '책', color: '#4ECDC4' },
+        ];
   }
 
   private buildAuthResponse(

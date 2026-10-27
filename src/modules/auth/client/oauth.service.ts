@@ -52,6 +52,11 @@ export class OAuthService {
         throw new UnauthorizedException('이메일 정보를 가져올 수 없습니다.');
       }
 
+      // 이메일 기준으로 기존 계정에 연결하므로 미인증 이메일은 거부
+      if (payload.email_verified !== true) {
+        throw new UnauthorizedException('인증되지 않은 구글 이메일입니다.');
+      }
+
       return {
         providerId: payload.sub,
         email: payload.email,

@@ -10,6 +10,7 @@ export interface JwtPayload {
   sub: string;
   email: string;
   role?: string;
+  type?: 'access' | 'refresh';
   iat?: number;
   exp?: number;
 }
@@ -28,6 +29,11 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   async validate(payload: JwtPayload) {
+    // refresh 토큰은 같은 secret으로 서명되므로 type으로 구분해 API 인증에서 거부 (type 없는 어드민 토큰은 허용)
+    if (payload.type === 'refresh') {
+      throw new UnauthorizedException('유효하지 않은 토큰입니다.');
+    }
+
     const user = await this.prisma.user.findUnique({
       where: { id: payload.sub },
       select: { ...USER_PROFILE_SELECT, lastActiveAt: true },
