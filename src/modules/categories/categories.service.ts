@@ -1,6 +1,6 @@
 // src/categories/categories.service.ts
 import { HttpException, HttpStatus, Injectable, NotFoundException } from '@nestjs/common';
-import { PrismaService } from 'prisma/prisma.service';
+import { PrismaService } from '../../../prisma/prisma.service';
 import { AppErrorCode } from '../../common/errors/app-error-codes';
 import { PrismaErrorHandler } from '../../common/exceptions/prisma-error.handler';
 import { CreateCategoryDto, ReorderCategoriesDto, UpdateCategoryDto } from './client/dto';
@@ -92,32 +92,28 @@ export class CategoriesService {
     }
   }
 
+  /**
+   * 카테고리 삭제 — 소속 메모는 삭제하지 않고 카테고리를 비워 '기타'로 이동
+   * (메모 이동과 삭제를 하나의 트랜잭션으로 처리, 스키마도 onDelete: SetNull로 이중 보호)
+   */
   async remove(userId: string, id: string) {
-    const category = await this.prisma.category.findFirst({
-      where: { id, userId },
-      include: MEMO_COUNT_INCLUDE,
-    });
+    const category = await this.prisma.category.findFirst({ where: { id, userId } });
 
     if (!category) {
       throw new NotFoundException(ERROR_MESSAGES.CATEGORY_NOT_FOUND);
     }
 
-    if (category._count.memos > 0) {
-      throw new HttpException(
-        {
-          statusCode: HttpStatus.CONFLICT,
-          code: AppErrorCode.CATEGORY_HAS_MEMOS,
-          message: '메모가 있는 카테고리는 삭제할 수 없습니다',
-          details: { memoCount: category._count.memos },
-        },
-        HttpStatus.CONFLICT,
-      );
-    }
+    const [{ count: movedMemoCount }, deleted] = await this.prisma.$transaction([
+      this.prisma.memo.updateMany({
+        where: { categoryId: id, userId },
+        data: { categoryId: null },
+      }),
+      this.prisma.category.delete({ where: { id } }),
+    ]);
 
-    return this.prisma.category.delete({
-      where: { id },
-    });
+    return { ...deleted, movedMemoCount };
   }
+
 
   async reorder(userId: string, reorderDto: ReorderCategoriesDto) {
     const updates = reorderDto.categories.map(({ id, sortOrder }) =>

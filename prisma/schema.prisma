@@ -129,7 +129,8 @@ model Memo {
 
   user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId     String
-  category   Category? @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  /// 카테고리 삭제 시 메모는 남기고 카테고리만 비움 (앱에서 '기타'로 표시)
+  category   Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   categoryId String?
 
   customFields MemoCustomField[]

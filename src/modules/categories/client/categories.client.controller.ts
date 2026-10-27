@@ -74,12 +74,14 @@ export class CategoriesClientController {
   }
 
   @Delete(':id')
-  @ApiOperation({ summary: '카테고리 삭제', description: 'ID로 특정 카테고리를 삭제합니다.' })
+  @ApiOperation({
+    summary: '카테고리 삭제',
+    description: '카테고리를 삭제합니다. 소속 메모는 삭제되지 않고 카테고리 없음(앱의 기타)으로 이동하며, 응답의 movedMemoCount로 이동한 메모 수를 반환합니다.',
+  })
   @ApiParam({ name: 'id', description: '카테고리 ID (UUID v4)', required: true })
   @ApiResponse({ status: 200, description: '카테고리 삭제 성공', type: CategoryDto })
   @ApiResponse({ status: 401, description: '인증되지 않음' })
   @ApiResponse({ status: 404, description: '카테고리를 찾을 수 없음' })
-  @ApiResponse({ status: 409, description: '메모가 있는 카테고리는 삭제 불가 (code: 4092)', type: ErrorResponseDto })
   remove(@Request() req: AuthenticatedRequest, @Param('id', ParseUUIDPipe) id: string) {
     const userId = req.user.id;
     return this.categoriesService.remove(userId, id);
