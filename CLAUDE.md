@@ -88,3 +88,5 @@ pnpm format             # Prettier 실행
 - `GOOGLE_CLIENT_ID`, `GOOGLE_IOS_CLIENT_ID`, `GOOGLE_ANDROID_CLIENT_ID`, `GOOGLE_WEB_CLIENT_ID`
 - `APPLE_CLIENT_ID`
 - `ALLOWED_ORIGINS` - CORS 허용 도메인
+- `SENTRY_DSN` - Sentry 에러 수집 (없으면 비활성화). 선택: `SENTRY_ENVIRONMENT`, `SENTRY_RELEASE`, `SENTRY_TRACES_SAMPLE_RATE`(기본 0.1)
+  - `src/instrument.ts`에서 초기화하며 `main.ts` 첫 import여야 함. `.env`보다 먼저 실행되므로 Railway 등 프로세스 환경변수로 설정

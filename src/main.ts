@@ -1,4 +1,7 @@
 // src/main.ts
+// Sentry는 반드시 가장 먼저 초기화
+import './instrument';
+
 import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
