@@ -76,7 +76,8 @@ export class MemosService {
             select: CATEGORY_BRIEF_SELECT,
           },
         },
-        orderBy: { updatedAt: 'desc' },
+        // 같은 updatedAt끼리 순서가 고정되지 않으면 페이지 경계에서 중복/누락이 생기므로 id로 보조 정렬
+        orderBy: [{ updatedAt: 'desc' }, { id: 'desc' }],
         skip: (page - 1) * limit,
         take: limit,
       }),
