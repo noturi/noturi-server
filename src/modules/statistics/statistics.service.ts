@@ -15,21 +15,12 @@ export class StatisticsService {
     const start = startDate ? new Date(startDate) : defaultStartDate;
     const end = endDate ? new Date(endDate) : now;
 
-    const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-    const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
-
     // 독립적인 쿼리들을 모두 병렬 실행
-    const [totalMemos, totalCategories, thisMonthMemos, lastMonthMemos, categoryStats, periodStats, lastMemo] =
+    const [totalMemos, totalCategories, { thisMonthMemos, lastMonthMemos }, categoryStats, periodStats, lastMemo] =
       await Promise.all([
         this.prisma.memo.count({ where: { userId } }),
         this.prisma.category.count({ where: { userId } }),
-        this.prisma.memo.count({
-          where: { userId, createdAt: { gte: thisMonthStart } },
-        }),
-        this.prisma.memo.count({
-          where: { userId, createdAt: { gte: lastMonthStart, lte: lastMonthEnd } },
-        }),
+        this.countMonthlyMemos(userId, now),
         this.prisma.category.findMany({
           where: { userId },
           select: {
@@ -73,6 +64,22 @@ export class StatisticsService {
       lastMemoDate: lastMemo?.createdAt.toISOString().split('T')[0],
       averageMemosPerDay: Math.round(averageMemosPerDay * 100) / 100,
     };
+  }
+
+  /**
+   * 이번 달 / 지난달 메모 개수 (getUserStatistics, getOverallStats 공용)
+   * 지난달 끝은 '말일 00:00'이 아니라 '이번 달 시작 미만'으로 잘라야 말일 하루치가 빠지지 않는다
+   */
+  private async countMonthlyMemos(userId: string, now: Date) {
+    const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+
+    const [thisMonthMemos, lastMonthMemos] = await Promise.all([
+      this.prisma.memo.count({ where: { userId, createdAt: { gte: thisMonthStart } } }),
+      this.prisma.memo.count({ where: { userId, createdAt: { gte: lastMonthStart, lt: thisMonthStart } } }),
+    ]);
+
+    return { thisMonthStart, thisMonthMemos, lastMonthMemos };
   }
 
   private async getPeriodStatistics(userId: string, startDate: Date, endDate: Date, period: StatisticsPeriod) {
@@ -262,27 +269,7 @@ export class StatisticsService {
     });
 
     // 이번 달과 지난 달 메모 개수
-    const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-    const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
-
-    const [thisMonthMemos, lastMonthMemos] = await Promise.all([
-      this.prisma.memo.count({
-        where: {
-          userId,
-          createdAt: { gte: thisMonthStart },
-        },
-      }),
-      this.prisma.memo.count({
-        where: {
-          userId,
-          createdAt: {
-            gte: lastMonthStart,
-            lte: lastMonthEnd,
-          },
-        },
-      }),
-    ]);
+    const { thisMonthStart, thisMonthMemos, lastMonthMemos } = await this.countMonthlyMemos(userId, now);
 
     // 전체 평균 평점
     const avgRatingResult = await this.prisma.memo.aggregate({
