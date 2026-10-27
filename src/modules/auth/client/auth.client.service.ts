@@ -54,7 +54,7 @@ export class ClientAuthService {
         });
       }
 
-      const tokens = this.tokenService.generateTokens(user);
+      const tokens = await this.tokenService.issueSession(user.id);
       return this.buildAuthResponse(user, tokens, isNewUser);
     } catch (error) {
       if (error instanceof UnauthorizedException) {
@@ -112,7 +112,7 @@ export class ClientAuthService {
         throw new UnauthorizedException('사용자를 찾거나 생성할 수 없습니다.');
       }
 
-      const tokens = this.tokenService.generateTokens(user);
+      const tokens = await this.tokenService.issueSession(user.id);
       return this.buildAuthResponse(user, tokens, isNewUser);
     } catch (error) {
       this.logger.warn('Apple 로그인 실패');
@@ -125,22 +125,24 @@ export class ClientAuthService {
     }
   }
 
+  /** 리프레시 토큰 회전(RTR) — 사용된 토큰은 무효화되고 같은 세션의 새 토큰 쌍 발급 */
   async refreshToken(refreshToken: string) {
-    const payload = this.tokenService.verifyRefreshToken(refreshToken);
-
-    const user = await this.prismaService.user.findUnique({
-      where: { id: payload.sub },
-    });
-
-    if (!user) {
-      throw new UnauthorizedException('사용자를 찾을 수 없습니다.');
-    }
-
-    const tokens = this.tokenService.generateTokens(user);
+    const tokens = await this.tokenService.rotate(refreshToken);
     return { tokens };
   }
 
-  async logout(userId: string, expoPushToken?: string) {
+  /** 위젯 전용 세션 발급 — 앱 세션과 별도 family로 회전하므로 서로의 토큰을 무효화하지 않음 */
+  async issueWidgetSession(userId: string, appSessionId?: string) {
+    const tokens = await this.tokenService.issueWidgetSession(userId, appSessionId);
+    return { tokens };
+  }
+
+  async logout(userId: string, expoPushToken?: string, sessionId?: string) {
+    // 현재 세션(및 그 세션의 위젯 세션) 리프레시 토큰 폐기
+    if (sessionId) {
+      await this.tokenService.revokeFamily(sessionId);
+    }
+
     if (!expoPushToken) {
       return { success: true };
     }

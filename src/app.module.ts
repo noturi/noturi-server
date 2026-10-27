@@ -1,9 +1,9 @@
 import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
-import { APP_FILTER } from '@nestjs/core';
+import { APP_FILTER, APP_GUARD } from '@nestjs/core';
 import { SentryGlobalFilter, SentryModule } from '@sentry/nestjs/setup';
 import { ConfigModule } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
-import { ThrottlerModule } from '@nestjs/throttler';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { CategoriesModule } from './modules/categories/categories.module';
@@ -26,7 +26,8 @@ import { PrismaModule } from '../prisma/prisma.module';
       isGlobal: true,
     }),
     ScheduleModule.forRoot(),  // 스케줄러 모듈
-    ThrottlerModule.forRoot([{ ttl: 60000, limit: 30 }]),
+    // IP당 분당 300회 — 앱 시작 시 병렬 요청(15개+)을 감안한 넉넉한 기본값. 로그인/갱신은 엔드포인트별로 더 엄격하게
+    ThrottlerModule.forRoot([{ ttl: 60000, limit: 300 }]),
     PrismaModule,
     AuthModule,
     CategoriesModule,
@@ -44,6 +45,8 @@ import { PrismaModule } from '../prisma/prisma.module';
     AppService,
     // 처리되지 않은 예외(5xx)를 Sentry로 보고 — HttpException(4xx)은 보고하지 않음
     { provide: APP_FILTER, useClass: SentryGlobalFilter },
+    // 요청 제한 실제 적용 (ThrottlerModule 설정과 @Throttle은 이 가드가 있어야 동작)
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
   ],
 })
 export class AppModule implements NestModule {

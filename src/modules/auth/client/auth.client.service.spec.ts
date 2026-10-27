@@ -32,7 +32,7 @@ function setup() {
   };
   prisma.$transaction.mockImplementation((callback: (tx: typeof prisma) => unknown) => callback(prisma));
   const tokenService = {
-    generateTokens: jest.fn().mockReturnValue({ accessToken: 'access', refreshToken: 'refresh' }),
+    issueSession: jest.fn().mockResolvedValue({ accessToken: 'access', refreshToken: 'refresh' }),
   };
   const oauthService = {
     verifyAppleToken: jest.fn().mockResolvedValue({ providerId: TOKEN_SUB, email: TOKEN_EMAIL }),

@@ -162,16 +162,25 @@ model MemoCustomField {
   @@map("memo_custom_fields")
 }
 
+/// 리프레시 토큰 (RTR) — 원문이 아닌 SHA-256 해시만 저장
+/// familyId = 하나의 로그인 세션. 회전할 때마다 같은 family로 새 행이 생기고 이전 행은 rotatedAt이 기록됨
 model RefreshToken {
-  id        String    @id @default(uuid())
-  token     String    @unique
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId    String
-  createdAt DateTime  @default(now())
-  expiresAt DateTime
-  revokedAt DateTime?
+  id             String    @id @default(uuid())
+  token          String    @unique /// 토큰 SHA-256 해시
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId         String
+  familyId       String    @default(uuid()) /// 세션 ID (액세스 토큰의 sid)
+  parentFamilyId String? /// 위젯 세션이면 발급한 앱 세션 ID
+  clientType     String    @default("app") /// app | widget
+  createdAt      DateTime  @default(now())
+  expiresAt      DateTime
+  rotatedAt      DateTime? /// 다음 토큰으로 교체된 시각 (재사용 감지 기준)
+  revokedAt      DateTime? /// 세션 폐기(로그아웃/재사용 감지) 시각
 
   @@index([userId])
+  @@index([familyId])
+  @@index([parentFamilyId])
+  @@index([expiresAt])
   @@map("refresh_tokens")
 }
 
@@ -261,22 +270,22 @@ model AdminNotification {
   id    String @id @default(uuid())
   title String // 알림 제목
   body  String // 알림 내용
-  data  Json?  // 추가 데이터 (딥링크 등)
+  data  Json? // 추가 데이터 (딥링크 등)
 
   // 대상 유저 ID 배열
   targetUserIds String[]
 
   // 예약 설정
   scheduledAt   DateTime? // 예약 발송 시간 (null이면 즉시 발송)
-  scheduledTime String?   // 반복시 매일 발송할 시간 (HH:mm 형식)
+  scheduledTime String? // 반복시 매일 발송할 시간 (HH:mm 형식)
 
   // 반복 설정
   isRepeat      Boolean                @default(false)
   repeatType    NotificationRepeatType @default(WEEKLY) // 반복 주기 (WEEKLY=매주 요일, MONTHLY=매월 날짜)
-  repeatDays    Int[]                  // WEEKLY: 요일 (0=일 ~ 6=토), MONTHLY: 날짜 (1~31)
+  repeatDays    Int[] // WEEKLY: 요일 (0=일 ~ 6=토), MONTHLY: 날짜 (1~31)
   sendOnLastDay Boolean                @default(false) // MONTHLY: 해당 날짜가 없는 달은 말일에 발송
   repeatEndAt   DateTime? // 반복 종료일
-  skipHolidays  Boolean   @default(false) // 공휴일 건너뛰기
+  skipHolidays  Boolean                @default(false) // 공휴일 건너뛰기
 
   // 상태
   isActive   Boolean   @default(true) // 활성화 여부 (반복 알림 중지용)
@@ -286,7 +295,7 @@ model AdminNotification {
   logs AdminNotificationLog[]
 
   // 메타
-  createdBy String   // 생성한 어드민 ID
+  createdBy String // 생성한 어드민 ID
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -304,7 +313,7 @@ model AdminNotificationLog {
   sentAt       DateTime @default(now())
   successCount Int      @default(0)
   failCount    Int      @default(0)
-  details      Json?    // 상세 결과 (실패한 토큰 등)
+  details      Json? // 상세 결과 (실패한 토큰 등)
 
   @@index([notificationId])
   @@index([sentAt])
@@ -315,9 +324,9 @@ model AdminNotificationLog {
 model AppVersion {
   id String @id @default(uuid())
 
-  iosVersion        String // iOS 최신 버전
-  iosMinVersion     String // iOS 최소 지원 버전 (이하면 강제 업데이트)
-  iosStoreUrl       String // 앱스토어 URL
+  iosVersion    String // iOS 최신 버전
+  iosMinVersion String // iOS 최소 지원 버전 (이하면 강제 업데이트)
+  iosStoreUrl   String // 앱스토어 URL
 
   androidVersion    String // Android 최신 버전
   androidMinVersion String // Android 최소 지원 버전

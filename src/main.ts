@@ -4,6 +4,7 @@ import './instrument';
 
 import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
+import { NestExpressApplication } from '@nestjs/platform-express';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import helmet from 'helmet';
 
@@ -11,7 +12,10 @@ import { AppModule } from './app.module';
 import { getCorsConfig } from './config/cors.config';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+
+  // Railway 프록시 뒤 — X-Forwarded-For의 실제 클라이언트 IP를 req.ip로 사용 (요청 제한이 IP별로 동작하도록)
+  app.set('trust proxy', 1);
 
   app.use(helmet());
 

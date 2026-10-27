@@ -41,6 +41,7 @@ export class AuthClientController {
 
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { ttl: 60000, limit: 20 } })
   @ApiOperation({ summary: '토큰 갱신 (client/auth)' })
   @ApiResponse({ status: 200, description: '토큰 갱신 성공', type: RefreshResponseDto })
   @ApiResponse({ status: 401, description: '리프레시 토큰 만료 또는 유효하지 않음', type: ErrorResponseDto })
@@ -55,7 +56,29 @@ export class AuthClientController {
   @ApiOperation({ summary: '로그아웃 (현재 디바이스 정리)' })
   @ApiResponse({ status: 200, description: '로그아웃 성공' })
   @ApiResponse({ status: 401, description: '인증 실패', type: ErrorResponseDto })
-  async logout(@CurrentUser('id') userId: string, @Body() dto: LogoutDto) {
-    return this.clientAuthService.logout(userId, dto.expoPushToken);
+  async logout(
+    @CurrentUser('id') userId: string,
+    @CurrentUser('sessionId') sessionId: string | undefined,
+    @Body() dto: LogoutDto,
+  ) {
+    return this.clientAuthService.logout(userId, dto.expoPushToken, sessionId);
+  }
+
+  @Post('widget-session')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
+  @Throttle({ default: { ttl: 60000, limit: 10 } })
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: '위젯 전용 세션 발급',
+    description: '앱 세션과 독립적으로 회전하는 위젯용 토큰 쌍을 발급합니다. 같은 앱 세션의 기존 위젯 세션은 폐기됩니다.',
+  })
+  @ApiResponse({ status: 200, description: '발급 성공', type: RefreshResponseDto })
+  @ApiResponse({ status: 401, description: '인증 실패', type: ErrorResponseDto })
+  async issueWidgetSession(
+    @CurrentUser('id') userId: string,
+    @CurrentUser('sessionId') sessionId: string | undefined,
+  ) {
+    return this.clientAuthService.issueWidgetSession(userId, sessionId);
   }
 }

@@ -11,6 +11,7 @@ export interface JwtPayload {
   email: string;
   role?: string;
   type?: 'access' | 'refresh';
+  sid?: string;
   iat?: number;
   exp?: number;
 }
@@ -53,6 +54,6 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       }).catch(() => {});
     }
 
-    return user;
+    return { ...user, sessionId: payload.sid };
   }
 }

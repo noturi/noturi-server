@@ -4,10 +4,10 @@
 
 ## Tech Stack
 
-- **Runtime**: Node.js 18, TypeScript 5
+- **Runtime**: Node.js 22 (Docker `node:22-alpine`, `engines >=20.19`), TypeScript 5
 - **Framework**: NestJS 10
 - **ORM**: Prisma 6 + PostgreSQL
-- **Auth**: JWT + Passport (Google OAuth, Apple OAuth, 어드민 로컬 인증)
+- **Auth**: JWT + Passport (Google OAuth, Apple OAuth, 어드민 로컬 인증), 리프레시 토큰 회전(RTR)
 - **Package Manager**: pnpm 9.6.0
 
 ## Project Structure
@@ -85,8 +85,19 @@ pnpm format             # Prettier 실행
 `.env` 파일 필요 (`.env` 참고):
 - `DATABASE_URL` - PostgreSQL 연결 문자열
 - `JWT_SECRET`, `JWT_EXPIRES_IN`, `REFRESH_TOKEN_EXPIRES_IN`
+- `REFRESH_TOKEN_SECRET` - 리프레시 토큰 전용 서명 키 (권장, 없으면 `JWT_SECRET` 사용)
+- `REFRESH_REUSE_ENFORCE` - `true`면 리프레시 토큰 재사용 감지 시 세션 폐기, 기본은 기록만 (구버전 앱 이행 기간)
 - `GOOGLE_CLIENT_ID`, `GOOGLE_IOS_CLIENT_ID`, `GOOGLE_ANDROID_CLIENT_ID`, `GOOGLE_WEB_CLIENT_ID`
 - `APPLE_CLIENT_ID`
 - `ALLOWED_ORIGINS` - CORS 허용 도메인
 - `SENTRY_DSN` - Sentry 에러 수집 (없으면 비활성화). 선택: `SENTRY_ENVIRONMENT`, `SENTRY_RELEASE`, `SENTRY_TRACES_SAMPLE_RATE`(기본 0.1)
   - `src/instrument.ts`에서 초기화하며 `main.ts` 첫 import여야 함. `.env`보다 먼저 실행되므로 Railway 등 프로세스 환경변수로 설정
+
+## 인증 / 리프레시 토큰 (RTR)
+
+- `TokenService`: 로그인마다 세션(`familyId`) 생성, 리프레시 토큰은 1회용으로 회전. DB(`refresh_tokens`)에는 SHA-256 해시만 저장
+- 액세스 토큰 `sid` = 세션 ID → `req.user.sessionId`. 로그아웃 시 해당 세션과 그 위젯 세션 폐기
+- 재사용 감지: 회전된 토큰이 유예(20초) 이후 다시 오면 Sentry 기록, `REFRESH_REUSE_ENFORCE=true`면 세션 전체 폐기
+- 위젯은 `POST /client/auth/widget-session`으로 앱과 별도 세션을 받아 독립적으로 회전
+- RTR 도입 전 토큰(jti 없음)은 첫 사용 시 새 세션으로 이전
+- 요청 제한: 전역 `ThrottlerGuard`(IP당 분당 300), 로그인 5/분, 갱신 20/분. `trust proxy`로 실제 클라이언트 IP 사용
