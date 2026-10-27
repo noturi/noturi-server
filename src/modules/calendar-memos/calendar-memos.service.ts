@@ -103,19 +103,28 @@ export class CalendarMemosService {
   }
 
   async updateCalendarMemo(userId: string, calendarMemoId: string, updateCalendarMemoDto: UpdateCalendarMemoDto) {
-    await this.getCalendarMemoById(userId, calendarMemoId);
+    const current = await this.getCalendarMemoById(userId, calendarMemoId);
 
     const { title, startDate, endDate, isAllDay, hasNotification, notifyBefore } = updateCalendarMemoDto;
+    const nextStartDate = startDate !== undefined ? this.normalizeDateTime(startDate) : undefined;
+
+    // 알림 시점이 실제로 바뀌면 다시 발송되도록 발송 여부를 초기화
+    // (클라이언트가 폼 전체를 보내므로 값이 같으면 초기화하지 않는다 — 중복 발송 방지)
+    const notificationChanged =
+      (nextStartDate !== undefined && nextStartDate.getTime() !== current.startDate.getTime()) ||
+      (notifyBefore !== undefined && notifyBefore !== current.notifyBefore) ||
+      (hasNotification === true && !current.hasNotification);
 
     return this.prisma.calendarMemo.update({
       where: { id: calendarMemoId },
       data: {
         ...(title !== undefined && { title }),
-        ...(startDate !== undefined && { startDate: this.normalizeDateTime(startDate) }),
+        ...(nextStartDate !== undefined && { startDate: nextStartDate }),
         ...(endDate !== undefined && { endDate: this.normalizeDateTime(endDate) }),
         ...(isAllDay !== undefined && { isAllDay }),
         ...(hasNotification !== undefined && { hasNotification }),
         ...(notifyBefore !== undefined && { notifyBefore }),
+        ...(notificationChanged && { notificationSent: false }),
       },
     });
   }

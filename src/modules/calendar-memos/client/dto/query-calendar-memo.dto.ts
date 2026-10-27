@@ -34,7 +34,8 @@ export class QueryCalendarMemoDto {
 
   @ApiProperty({ example: true, description: '알림 설정된 일정만 조회', required: false })
   @IsOptional()
-  @Transform(({ value }) => value === 'true')
+  // enableImplicitConversion이 먼저 'true'/'false'를 boolean으로 바꾸므로 obj의 원본 문자열로 판정
+  @Transform(({ obj, key }) => obj[key] === true || obj[key] === 'true')
   @IsBoolean()
   hasNotification?: boolean;
 }
