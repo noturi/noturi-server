@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsOptional, IsEnum, Matches } from 'class-validator';
+import { IsString, IsOptional, IsEnum, IsBoolean, Matches } from 'class-validator';
 
 export enum DevicePlatform {
   IOS = 'ios',
@@ -35,6 +35,15 @@ export class RegisterDeviceDto {
   @IsOptional()
   @IsEnum(DevicePlatform)
   platform?: DevicePlatform;
+
+  @ApiProperty({
+    example: true,
+    description: '앱 실행 시 토큰 갱신용 등록 — 알림이 꺼진 사용자는 등록하지 않고, 알림 설정도 바꾸지 않음',
+    required: false,
+  })
+  @IsOptional()
+  @IsBoolean()
+  refreshOnly?: boolean;
 }
 
 export class DeviceResponseDto {

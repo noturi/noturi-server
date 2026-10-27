@@ -29,12 +29,12 @@ export class DevicesController {
 
   @Post()
   @ApiOperation({ summary: '디바이스 등록 (푸시 토큰)' })
-  @ApiResponse({ status: 201, description: '등록 성공', type: DeviceResponseDto })
+  @ApiResponse({ status: 201, description: '등록 성공 (refreshOnly이고 알림이 꺼져 있으면 null)', type: DeviceResponseDto })
   @ApiResponse({ status: 400, description: '잘못된 요청' })
   async registerDevice(
     @CurrentUser('id') userId: string,
     @Body() dto: RegisterDeviceDto,
-  ): Promise<DeviceResponseDto> {
+  ): Promise<DeviceResponseDto | null> {
     return this.devicesService.registerDevice(userId, dto);
   }
 
