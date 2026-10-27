@@ -144,6 +144,7 @@ model Memo {
   @@index([userId, rating])
   @@index([userId, categoryId])
   @@index([userId, updatedAt])
+  @@index([userId, createdAt]) // 통계·연도 필터 (userId + createdAt 범위)
   @@map("memos")
 }
 
@@ -221,7 +222,7 @@ model CalendarMemo {
   @@index([userId])
   @@index([startDate])
   @@index([userId, startDate])
-  @@index([hasNotification, notificationSent]) // 알림 조회용 인덱스
+  @@index([hasNotification, notificationSent, startDate]) // 알림 cron 조회용 (startDate 범위 조건 포함)
   @@map("calendar_memos")
 }
 
