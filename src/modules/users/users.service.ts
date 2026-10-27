@@ -125,21 +125,18 @@ export class UsersService {
 
   // 사용자 설정 메서드들
   async getUserSettings(userId: string) {
-    let settings = await this.prisma.userSettings.findUnique({
-      where: { userId },
-    });
-
     // 설정이 없으면 기본값으로 생성 (디바이스 등록 전이므로 notification: false)
-    if (!settings) {
-      settings = await this.prisma.userSettings.create({
-        data: {
-          userId,
-          theme: Theme.light,
-          language: Language.ko,
-          notification: false,
-        },
-      });
-    }
+    // 조회 후 생성하면 동시 요청 시 unique 충돌(500)이 나므로 upsert로 처리
+    const settings = await this.prisma.userSettings.upsert({
+      where: { userId },
+      update: {},
+      create: {
+        userId,
+        theme: Theme.light,
+        language: Language.ko,
+        notification: false,
+      },
+    });
 
     return {
       theme: settings.theme,
