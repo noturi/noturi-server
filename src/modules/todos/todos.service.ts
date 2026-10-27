@@ -139,8 +139,9 @@ export class TodosService {
 
     if (newDates.length === 0) return [];
 
-    // 배치로 인스턴스 생성
-    await this.prisma.todoInstance.createMany({
+    // 배치로 인스턴스 생성 — 조회와 생성 사이에 같은 날짜가 먼저 생기면(cron과 요청 동시 실행 등)
+    // unique 충돌로 전체가 실패하지 않도록 중복은 건너뛴다
+    const { count } = await this.prisma.todoInstance.createMany({
       data: newDates.map((date) => ({
         title: template.title,
         description: template.description,
@@ -148,13 +149,16 @@ export class TodosService {
         templateId,
         userId,
       })),
+      skipDuplicates: true,
     });
 
-    // 통계 한 번에 업데이트
-    await this.prisma.user.update({
-      where: { id: userId },
-      data: { totalTodos: { increment: newDates.length } },
-    });
+    // 통계는 실제 생성된 개수만큼만 반영
+    if (count > 0) {
+      await this.prisma.user.update({
+        where: { id: userId },
+        data: { totalTodos: { increment: count } },
+      });
+    }
 
     // 생성된 인스턴스 조회하여 반환
     const instances = await this.prisma.todoInstance.findMany({
@@ -395,7 +399,8 @@ export class TodosService {
         ...(description !== undefined && { description }),
         ...(recurrenceType !== undefined && { recurrenceType }),
         ...(recurrenceDays !== undefined && { recurrenceDays }),
-        ...(endDate !== undefined && { endDate: this.normalizeDate(endDate) }),
+        // null은 종료일 해제 (normalizeDate(null)은 1970-01-01이 되어 템플릿이 비활성화됨)
+        ...(endDate !== undefined && { endDate: endDate === null ? null : this.normalizeDate(endDate) }),
         ...(isActive !== undefined && { isActive }),
       },
     });

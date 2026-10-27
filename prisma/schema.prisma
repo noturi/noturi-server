@@ -362,7 +362,7 @@ model TodoInstance {
   completedAt    DateTime?
   carryOverCount Int       @default(0) // 이월 횟수 (0=원본, 최대 3)
 
-  template   TodoTemplate? @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  template   TodoTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull) // 템플릿 삭제 시 과거 기록은 일회성으로 보존
   templateId String? // null이면 일회성 투두
   user       User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId     String

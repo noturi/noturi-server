@@ -28,11 +28,14 @@ export class TodosSchedulerService {
       yesterday.setDate(yesterday.getDate() - 1);
       const yesterdayEnd = new Date(today);
 
-      // 어제 날짜의 미완료 투두
+      // 어제 날짜의 미완료 일회성 투두 (이월 최대 3회)
+      // 반복 템플릿 인스턴스는 다음 반복일에 새로 생성되므로 이월하면 중복이 쌓인다
       const uncompletedTodos = await this.prisma.todoInstance.findMany({
         where: {
           date: { gte: yesterday, lt: yesterdayEnd },
           isCompleted: false,
+          templateId: null,
+          carryOverCount: { lt: 3 },
         },
       });
 
@@ -88,9 +91,14 @@ export class TodosSchedulerService {
 
       let totalCreated = 0;
 
+      // 템플릿 하나가 실패해도 나머지는 생성되도록 개별 처리
       for (const template of templates) {
-        const instances = await this.todosService.generateInstances(template.id, template.userId, 7);
-        totalCreated += instances.length;
+        try {
+          const instances = await this.todosService.generateInstances(template.id, template.userId, 7);
+          totalCreated += instances.length;
+        } catch (error) {
+          this.logger.error(`반복 투두 인스턴스 생성 실패 (template: ${template.id})`, error);
+        }
       }
 
       this.logger.log(`반복 투두 인스턴스 생성 완료: ${totalCreated}개`);

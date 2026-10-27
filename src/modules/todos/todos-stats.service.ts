@@ -10,6 +10,9 @@ import {
   GrassStatsResponseDto,
 } from './client/dto';
 
+// 연속 달성일 계산 범위 (투두 토글마다 호출되므로 무제한 대신 1년으로 제한)
+const STREAK_WINDOW_DAYS = 365;
+
 @Injectable()
 export class TodosStatsService {
   constructor(private readonly prisma: PrismaService) {}
@@ -275,15 +278,15 @@ export class TodosStatsService {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    // 최근 30일간 날짜별 달성률 + 현재 bestStreak 병렬 조회
-    const thirtyDaysAgo = new Date(today);
-    thirtyDaysAgo.setDate(today.getDate() - 30);
+    // 최근 1년간 날짜별 달성률 + 현재 bestStreak 병렬 조회 (30일이면 streak이 31일에서 멈춤)
+    const windowStart = new Date(today);
+    windowStart.setDate(today.getDate() - STREAK_WINDOW_DAYS);
 
     const [todos, user] = await Promise.all([
       this.prisma.todoInstance.findMany({
         where: {
           userId,
-          date: { gte: thirtyDaysAgo, lte: today },
+          date: { gte: windowStart, lte: today },
         },
         select: { date: true, isCompleted: true },
       }),
@@ -305,19 +308,21 @@ export class TodosStatsService {
       dateMap.set(dateKey, existing);
     });
 
-    // 오늘부터 과거로 연속 달성일 계산 (투두 없는 날은 streak 끊김)
+    const isDayComplete = (date: Date) => {
+      const stats = dateMap.get(this.formatDate(date));
+      return !!stats && stats.total > 0 && stats.completed === stats.total;
+    };
+
+    // 오늘은 아직 진행 중이므로 다 끝냈을 때만 포함하고, 아니면 어제부터 센다
+    // (자정 직후엔 오늘 투두가 대부분 미완료라 오늘부터 세면 streak이 매일 0이 됨)
     let currentStreak = 0;
     const checkDate = new Date(today);
+    if (!isDayComplete(checkDate)) {
+      checkDate.setDate(checkDate.getDate() - 1);
+    }
 
-    while (checkDate >= thirtyDaysAgo) {
-      const dateKey = this.formatDate(checkDate);
-      const stats = dateMap.get(dateKey);
-
-      // 투두가 없거나 100% 미달성이면 streak 종료
-      if (!stats || stats.total === 0 || stats.completed !== stats.total) {
-        break;
-      }
-
+    // 과거로 연속 달성일 계산 (투두 없는 날이나 100% 미달성인 날에서 끊김)
+    while (checkDate >= windowStart && isDayComplete(checkDate)) {
       currentStreak++;
       checkDate.setDate(checkDate.getDate() - 1);
     }

@@ -55,12 +55,13 @@ export class UpdateTemplateDto {
 
   @ApiProperty({
     example: '2026-12-31',
-    description: '반복 종료 날짜',
+    description: '반복 종료 날짜 (null이면 종료일 해제)',
     required: false,
+    nullable: true,
   })
   @IsOptional()
   @IsDateString()
-  endDate?: string;
+  endDate?: string | null;
 
   @ApiProperty({ example: true, description: '활성화 여부', required: false })
   @IsOptional()
