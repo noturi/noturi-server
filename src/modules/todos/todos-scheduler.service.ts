@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
+import { addDays, localDateOf } from '../../common/utils/user-date.util';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { TodosService } from './todos.service';
 import { TodosStatsService } from './todos-stats.service';
@@ -15,122 +16,105 @@ export class TodosSchedulerService {
   ) {}
 
   /**
-   * 매일 자정에 어제 미완료 투두를 오늘로 이월 (최대 3회)
+   * 사용자별 하루 마감 — 각자 시간대의 자정이 지나면 처리 (15분마다 확인)
+   *
+   * 서버는 UTC로 돌기 때문에 고정 자정 cron은 한국 기준 오전 9시에 실행됐다.
+   * 사용자마다 시간대가 다를 수 있어(글로벌) 시간대별로 "오늘"을 구해, 아직 오늘 처리 안 된 사용자만 마감한다.
+   * 서버가 잠시 내려가 있었어도 다음 실행에서 따라잡는다.
    */
-  @Cron('1 0 * * *', { name: 'todo-carry-over-uncompleted' })
-  async carryOverUncompletedTodos() {
-    this.logger.log('미완료 투두 이월 시작');
-
+  @Cron('*/15 * * * *', { name: 'todo-daily-rollover' })
+  async runDailyRollover(now: Date = new Date()) {
     try {
-      const now = new Date();
-      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      const yesterday = new Date(today);
-      yesterday.setDate(yesterday.getDate() - 1);
-      const yesterdayEnd = new Date(today);
+      const zones = await this.prisma.user.groupBy({ by: ['timezone'] });
+      let processed = 0;
 
-      // 어제 날짜의 미완료 일회성 투두 (이월 최대 3회)
-      // 반복 템플릿 인스턴스는 다음 반복일에 새로 생성되므로 이월하면 중복이 쌓인다
-      const uncompletedTodos = await this.prisma.todoInstance.findMany({
-        where: {
-          date: { gte: yesterday, lt: yesterdayEnd },
-          isCompleted: false,
-          templateId: null,
-          carryOverCount: { lt: 3 },
-        },
-      });
-
-      let totalCarriedOver = 0;
-
-      for (const todo of uncompletedTodos) {
-        await this.prisma.todoInstance.create({
-          data: {
-            title: todo.title,
-            description: todo.description,
-            date: today,
-            isCompleted: false,
-            carryOverCount: todo.carryOverCount + 1,
-            userId: todo.userId,
-            // templateId는 null로 설정 (unique 제약조건 충돌 방지)
-          },
+      for (const { timezone } of zones) {
+        const today = localDateOf(timezone, now);
+        const users = await this.prisma.user.findMany({
+          where: { timezone, lastRolloverDate: { lt: today } },
+          select: { id: true, totalTodos: true },
         });
 
-        // 통계 업데이트 (새 인스턴스이므로 totalTodos 증가)
-        await this.prisma.user.update({
-          where: { id: todo.userId },
-          data: { totalTodos: { increment: 1 } },
-        });
-
-        totalCarriedOver++;
-      }
-
-      this.logger.log(`미완료 투두 이월 완료: ${totalCarriedOver}개`);
-    } catch (error) {
-      this.logger.error('미완료 투두 이월 실패', error);
-    }
-  }
-
-  /**
-   * 매일 자정에 7일치 반복 투두 인스턴스 생성
-   */
-  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT, { name: 'todo-generate-daily-instances' })
-  async generateDailyInstances() {
-    this.logger.log('반복 투두 인스턴스 생성 시작');
-
-    try {
-      // 활성화된 모든 템플릿 조회
-      const templates = await this.prisma.todoTemplate.findMany({
-        where: {
-          isActive: true,
-          OR: [{ endDate: null }, { endDate: { gte: new Date() } }],
-        },
-        select: {
-          id: true,
-          userId: true,
-        },
-      });
-
-      let totalCreated = 0;
-
-      // 템플릿 하나가 실패해도 나머지는 생성되도록 개별 처리
-      for (const template of templates) {
-        try {
-          const instances = await this.todosService.generateInstances(template.id, template.userId, 7);
-          totalCreated += instances.length;
-        } catch (error) {
-          this.logger.error(`반복 투두 인스턴스 생성 실패 (template: ${template.id})`, error);
+        // 사용자 하나가 실패해도 나머지는 처리되도록 개별 처리
+        for (const user of users) {
+          try {
+            if (await this.rolloverUser(user, today)) processed++;
+          } catch (error) {
+            this.logger.error(`하루 마감 실패 (user: ${user.id}, ${timezone})`, error);
+          }
         }
       }
 
-      this.logger.log(`반복 투두 인스턴스 생성 완료: ${totalCreated}개`);
+      if (processed > 0) this.logger.log(`하루 마감 완료: ${processed}명`);
     } catch (error) {
-      this.logger.error('반복 투두 인스턴스 생성 실패', error);
+      this.logger.error('하루 마감 실패', error);
     }
   }
 
   /**
-   * 매일 자정에 모든 사용자의 연속 달성일(streak) 업데이트
+   * 한 사용자의 하루 마감: 어제 미완료 이월 → 반복 투두 생성 → 연속 달성일 갱신
+   * @returns 이번 실행에서 처리했으면 true (다른 실행이 먼저 처리했으면 false)
    */
-  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT, { name: 'todo-update-all-streaks' })
-  async updateAllStreaks() {
-    this.logger.log('연속 달성일 업데이트 시작');
+  private async rolloverUser(user: { id: string; totalTodos: number }, today: Date): Promise<boolean> {
+    // 처리 날짜를 먼저 기록해 선점 — 실행이 겹쳐도 같은 날 두 번 이월되지 않음
+    const { count } = await this.prisma.user.updateMany({
+      where: { id: user.id, lastRolloverDate: { lt: today } },
+      data: { lastRolloverDate: today },
+    });
+    if (count === 0) return false;
+    if (user.totalTodos === 0) return true;
 
-    try {
-      // 투두가 있는 모든 사용자 조회
-      const users = await this.prisma.user.findMany({
-        where: {
-          totalTodos: { gt: 0 },
-        },
-        select: { id: true },
-      });
+    await this.carryOverUncompletedTodos(user.id, today);
 
-      for (const user of users) {
-        await this.todosStatsService.updateStreak(user.id);
+    const templates = await this.prisma.todoTemplate.findMany({
+      where: { userId: user.id, isActive: true, OR: [{ endDate: null }, { endDate: { gte: today } }] },
+      select: { id: true },
+    });
+    for (const template of templates) {
+      try {
+        await this.todosService.generateInstances(template.id, user.id, 7);
+      } catch (error) {
+        this.logger.error(`반복 투두 인스턴스 생성 실패 (template: ${template.id})`, error);
       }
-
-      this.logger.log(`연속 달성일 업데이트 완료: ${users.length}명`);
-    } catch (error) {
-      this.logger.error('연속 달성일 업데이트 실패', error);
     }
+
+    await this.todosStatsService.updateStreak(user.id);
+    return true;
+  }
+
+  /**
+   * 어제 미완료 일회성 투두를 오늘로 이월 (최대 3회)
+   * 반복 템플릿 인스턴스는 다음 반복일에 새로 생성되므로 이월하면 중복이 쌓인다
+   */
+  private async carryOverUncompletedTodos(userId: string, today: Date) {
+    const uncompletedTodos = await this.prisma.todoInstance.findMany({
+      where: {
+        userId,
+        date: { gte: addDays(today, -1), lt: today },
+        isCompleted: false,
+        templateId: null,
+        carryOverCount: { lt: 3 },
+      },
+    });
+    if (uncompletedTodos.length === 0) return;
+
+    await this.prisma.todoInstance.createMany({
+      data: uncompletedTodos.map((todo) => ({
+        title: todo.title,
+        description: todo.description,
+        date: today,
+        isCompleted: false,
+        carryOverCount: todo.carryOverCount + 1,
+        userId,
+        // templateId는 null로 설정 (unique 제약조건 충돌 방지)
+      })),
+    });
+
+    // 통계 업데이트 (새 인스턴스이므로 totalTodos 증가)
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { totalTodos: { increment: uncompletedTodos.length } },
+    });
   }
 
   /**
@@ -141,15 +125,14 @@ export class TodosSchedulerService {
     this.logger.log('만료된 템플릿 비활성화 시작');
 
     try {
-      const yesterday = new Date();
-      yesterday.setDate(yesterday.getDate() - 1);
-      yesterday.setHours(23, 59, 59, 999);
+      // 시간대가 가장 늦은 지역(UTC-12)도 종료일이 지났을 때만 — UTC 기준 이틀 전까지
+      const cutoff = addDays(localDateOf('UTC'), -1);
 
       const result = await this.prisma.todoTemplate.updateMany({
         where: {
           isActive: true,
           endDate: {
-            lte: yesterday,
+            lt: cutoff,
           },
         },
         data: {

@@ -3,6 +3,8 @@ FROM node:22-alpine AS builder
 WORKDIR /app
 # package.json의 packageManager(pnpm@9.6.0)를 corepack으로 고정 — 이미지 빌드 시 미리 설치해 런타임 다운로드/프롬프트 방지
 ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
+# 날짜 계산은 UTC 기준 — 사용자 "오늘"은 user.timezone으로 계산 (src/common/utils/user-date.util.ts)
+ENV TZ=UTC
 COPY package.json pnpm-lock.yaml ./
 RUN corepack enable && corepack install
 RUN pnpm install --frozen-lockfile --shamefully-hoist
@@ -14,6 +16,8 @@ RUN pnpm run build
 FROM node:22-alpine AS production
 WORKDIR /app
 ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
+# 날짜 계산은 UTC 기준 — 사용자 "오늘"은 user.timezone으로 계산 (src/common/utils/user-date.util.ts)
+ENV TZ=UTC
 COPY package.json pnpm-lock.yaml ./
 RUN corepack enable && corepack install
 COPY --from=builder /app/node_modules ./node_modules

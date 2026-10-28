@@ -9,6 +9,7 @@ import {
   GrassDataDto,
   GrassStatsResponseDto,
 } from './client/dto';
+import { localDateOf } from '../../common/utils/user-date.util';
 
 // 연속 달성일 계산 범위 (투두 토글마다 호출되므로 무제한 대신 1년으로 제한)
 const STREAK_WINDOW_DAYS = 365;
@@ -16,6 +17,12 @@ const STREAK_WINDOW_DAYS = 365;
 @Injectable()
 export class TodosStatsService {
   constructor(private readonly prisma: PrismaService) {}
+
+  /** 사용자 시간대 기준 오늘 (UTC 자정 형식) */
+  private async userToday(userId: string): Promise<Date> {
+    const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { timezone: true } });
+    return localDateOf(user?.timezone);
+  }
 
   /**
    * 날짜를 YYYY-MM-DD 형식으로 포맷
@@ -88,8 +95,7 @@ export class TodosStatsService {
    * 주간 통계 (이번 주 달성률, 요일별)
    */
   async getWeeklyStats(userId: string): Promise<WeeklyStatsResponseDto> {
-    const now = new Date();
-    now.setHours(0, 0, 0, 0);
+    const now = await this.userToday(userId);
 
     // 이번 주 일요일 찾기
     const dayOfWeek = now.getDay();
@@ -202,8 +208,7 @@ export class TodosStatsService {
    * 잔디 통계 (깃허브 잔디 스타일, 최근 6개월)
    */
   async getGrassStats(userId: string, months: number = 6): Promise<GrassStatsResponseDto> {
-    const now = new Date();
-    const endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const endDate = await this.userToday(userId);
     const startDate = new Date(endDate);
     startDate.setMonth(startDate.getMonth() - months);
 
@@ -275,26 +280,24 @@ export class TodosStatsService {
    * 연속 달성일 업데이트 (매일 자정 또는 투두 완료 시 호출)
    */
   async updateStreak(userId: string): Promise<void> {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { bestStreak: true, timezone: true },
+    });
+    // 사용자 시간대의 오늘 — 서버(UTC) 기준이면 한국 자정~오전 9시에 날짜가 하루 밀림
+    const today = localDateOf(user?.timezone);
 
-    // 최근 1년간 날짜별 달성률 + 현재 bestStreak 병렬 조회 (30일이면 streak이 31일에서 멈춤)
+    // 최근 1년간 날짜별 달성률 조회 (30일이면 streak이 31일에서 멈춤)
     const windowStart = new Date(today);
     windowStart.setDate(today.getDate() - STREAK_WINDOW_DAYS);
 
-    const [todos, user] = await Promise.all([
-      this.prisma.todoInstance.findMany({
-        where: {
-          userId,
-          date: { gte: windowStart, lte: today },
-        },
-        select: { date: true, isCompleted: true },
-      }),
-      this.prisma.user.findUnique({
-        where: { id: userId },
-        select: { bestStreak: true },
-      }),
-    ]);
+    const todos = await this.prisma.todoInstance.findMany({
+      where: {
+        userId,
+        date: { gte: windowStart, lte: today },
+      },
+      select: { date: true, isCompleted: true },
+    });
 
     // 날짜별 그룹화
     const dateMap = new Map<string, { total: number; completed: number }>();

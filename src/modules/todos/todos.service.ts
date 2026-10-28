@@ -2,6 +2,7 @@ import { Injectable, NotFoundException, BadRequestException } from '@nestjs/comm
 import { PrismaService } from '../../../prisma/prisma.service';
 import { CreateTodoDto, UpdateTodoDto, UpdateTemplateDto, QueryTodoDto } from './client/dto';
 import { RecurrenceType } from './enums/recurrence-type.enum';
+import { addDays, localDateOf } from '../../common/utils/user-date.util';
 
 @Injectable()
 export class TodosService {
@@ -103,20 +104,20 @@ export class TodosService {
   async generateInstances(templateId: string, userId: string, daysAhead: number) {
     const template = await this.prisma.todoTemplate.findUnique({
       where: { id: templateId },
+      include: { user: { select: { timezone: true } } },
     });
 
     if (!template || !template.isActive) {
       return [];
     }
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    // 사용자 시간대의 오늘부터 생성
+    const today = localDateOf(template.user?.timezone);
 
     // 생성 대상 날짜 목록 계산
     const candidateDates: Date[] = [];
     for (let i = 0; i < daysAhead; i++) {
-      const targetDate = new Date(today);
-      targetDate.setDate(today.getDate() + i);
+      const targetDate = addDays(today, i);
 
       if (targetDate < template.startDate) continue;
       if (template.endDate && targetDate > template.endDate) continue;
@@ -412,8 +413,8 @@ export class TodosService {
   async deleteTemplate(userId: string, templateId: string) {
     await this.getTemplateById(userId, templateId);
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { timezone: true } });
+    const today = localDateOf(user?.timezone);
 
     // 미래 인스턴스 카운트 (통계 업데이트용)
     const futureInstances = await this.prisma.todoInstance.findMany({

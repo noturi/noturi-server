@@ -46,11 +46,15 @@ model User {
   // 로컬 인증 (어드민용)
   password String? // bcrypt 해시
 
-  isStatsPublic Boolean   @default(false)
-  role          UserRole  @default(USER)
-  lastActiveAt  DateTime?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  isStatsPublic    Boolean   @default(false)
+  role             UserRole  @default(USER)
+  lastActiveAt     DateTime?
+  // 사용자 시간대 (IANA) — 자정 이월·반복 생성·streak의 "오늘" 기준. 앱이 X-Timezone 헤더로 보냄
+  timezone         String    @default("Asia/Seoul")
+  // 마지막으로 하루 마감(이월·반복 생성·streak)을 처리한 현지 날짜 — 같은 날 중복 처리 방지
+  lastRolloverDate DateTime  @default(now())
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
 
   // Todo 통계
   totalTodos     Int @default(0) // 전체 투두 수
@@ -69,6 +73,7 @@ model User {
 
   @@index([providerId])
   @@index([email])
+  @@index([timezone, lastRolloverDate])
   @@map("users")
 }
 
