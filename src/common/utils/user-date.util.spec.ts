@@ -1,4 +1,4 @@
-import { addDays, isValidTimeZone, localDateOf } from './user-date.util';
+import { addDays, isValidTimeZone, localDateOf, localYearRange, startOfLocalDay } from './user-date.util';
 
 const date = (y: number, m: number, d: number) => new Date(Date.UTC(y, m - 1, d));
 
@@ -32,5 +32,27 @@ describe('addDays', () => {
   it('서버 시간대와 무관하게 하루 단위로 더한다', () => {
     expect(addDays(date(2026, 10, 31), 1)).toEqual(date(2026, 11, 1));
     expect(addDays(date(2026, 1, 1), -1)).toEqual(date(2025, 12, 31));
+  });
+});
+
+describe('startOfLocalDay / localYearRange', () => {
+  it('서울 1월 1일 0시는 UTC로 전날 15시', () => {
+    expect(startOfLocalDay('Asia/Seoul', 2026, 1, 1)).toEqual(new Date('2025-12-31T15:00:00Z'));
+  });
+
+  it('UTC보다 늦은 지역은 UTC로 같은 날 오후 이후', () => {
+    expect(startOfLocalDay('America/New_York', 2026, 1, 1)).toEqual(new Date('2026-01-01T05:00:00Z'));
+  });
+
+  it('서머타임 중인 날짜도 맞게 계산한다', () => {
+    // 뉴욕 7월은 UTC-4
+    expect(startOfLocalDay('America/New_York', 2026, 7, 1)).toEqual(new Date('2026-07-01T04:00:00Z'));
+  });
+
+  // 회귀: 연도 필터를 UTC 1/1 0시로 잘라 한국 1/1 0~9시 메모가 전년도로 잡히던 문제
+  it('[회귀] 한국 1월 1일 새벽 메모는 그 해에 들어간다', () => {
+    const range = localYearRange('Asia/Seoul', 2026);
+    const memoAt = new Date('2025-12-31T16:00:00Z'); // 한국 2026-01-01 01:00
+    expect(memoAt >= range.gte && memoAt < range.lt).toBe(true);
   });
 });

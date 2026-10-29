@@ -4,6 +4,7 @@ import { PrismaService } from '../../../prisma/prisma.service';
 import { CreateMemoDto, QueryMemoDto, QueryRatingSummaryDto, UpdateMemoDto } from './client/dto';
 import { CATEGORY_BRIEF_SELECT } from '../../common/constants/prisma-selects';
 import { ERROR_MESSAGES } from '../../common/constants/error-messages';
+import { localYearRange } from '../../common/utils/user-date.util';
 
 /** 별점 없음 그룹 */
 const UNRATED = 0;
@@ -36,14 +37,13 @@ export class MemosService {
         categoryId,
       },
       include: {
-        category: categoryId
-          ? { select: CATEGORY_BRIEF_SELECT }
-          : false,
+        category: categoryId ? { select: CATEGORY_BRIEF_SELECT } : false,
       },
     });
   }
 
-  async getMemos(userId: string, queryDto: QueryMemoDto) {
+  /** timeZone: 연도 필터를 사용자 시간대의 1/1 0시 기준으로 자르기 위함 */
+  async getMemos(userId: string, queryDto: QueryMemoDto, timeZone?: string) {
     const {
       keyword,
       categoryId,
@@ -59,15 +59,16 @@ export class MemosService {
     const limit = Math.min(rawLimit, 100);
 
     const where: Prisma.MemoWhereInput = {
-      ...this.baseWhere(userId, categoryId, year),
+      ...this.baseWhere(userId, categoryId, year, timeZone),
       ...(hasRating === 'false' && { rating: null }),
       ...(hasRating === 'true' && { rating: { not: null } }),
-      ...(hasRating === undefined && (minRating || maxRating) && {
-        rating: {
-          ...(minRating && { gte: minRating }),
-          ...(maxRating && { lte: maxRating }),
-        },
-      }),
+      ...(hasRating === undefined &&
+        (minRating || maxRating) && {
+          rating: {
+            ...(minRating && { gte: minRating }),
+            ...(maxRating && { lte: maxRating }),
+          },
+        }),
       ...(keyword && {
         OR: [
           { title: { contains: keyword, mode: 'insensitive' as const } },
@@ -107,10 +108,10 @@ export class MemosService {
    * 홈 화면용 별점 요약 — 그룹(5 → 1 → 별점 없음)마다 개수와 최근 메모 limit개를 한 번에 반환
    * 별점 N 그룹은 N.0~N.5 (0.5 단위)
    */
-  async getRatingSummary(userId: string, queryDto: QueryRatingSummaryDto) {
+  async getRatingSummary(userId: string, queryDto: QueryRatingSummaryDto, timeZone?: string) {
     const { categoryId, year, limit: rawLimit = 5 } = queryDto;
     const limit = Math.min(rawLimit, 20);
-    const base = this.baseWhere(userId, categoryId, year);
+    const base = this.baseWhere(userId, categoryId, year, timeZone);
 
     const [counts, ...memosByGroup] = await Promise.all([
       this.prisma.memo.groupBy({ by: ['rating'], where: base, _count: { _all: true } }),
@@ -142,16 +143,12 @@ export class MemosService {
     };
   }
 
-  private baseWhere(userId: string, categoryId?: string, year?: number): Prisma.MemoWhereInput {
+  private baseWhere(userId: string, categoryId?: string, year?: number, timeZone?: string): Prisma.MemoWhereInput {
     return {
       userId,
       ...(categoryId && { categoryId }),
-      ...(year && {
-        createdAt: {
-          gte: new Date(`${year}-01-01T00:00:00.000Z`),
-          lt: new Date(`${year + 1}-01-01T00:00:00.000Z`),
-        },
-      }),
+      // UTC 1/1 0시로 자르면 한국 1/1 0~9시 메모가 전년도로 잡힘 → 사용자 시간대 기준
+      ...(year && { createdAt: localYearRange(timeZone, year) }),
     };
   }
 

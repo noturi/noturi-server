@@ -39,3 +39,34 @@ export function localDateOf(timeZone: string | null | undefined, at: Date = new 
 export function addDays(date: Date, days: number): Date {
   return new Date(date.getTime() + days * DAY_MS);
 }
+
+/** 해당 시각에서 시간대의 UTC 대비 차이(ms) — 예: 서울은 +9시간 */
+function timeZoneOffsetMs(timeZone: string, at: Date): number {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone,
+    hourCycle: 'h23',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  }).formatToParts(at);
+  const get = (type: Intl.DateTimeFormatPartTypes) => Number(parts.find((p) => p.type === type)?.value);
+  const wallClockAsUtc = Date.UTC(get('year'), get('month') - 1, get('day'), get('hour'), get('minute'), get('second'));
+  return wallClockAsUtc - Math.floor(at.getTime() / 1000) * 1000;
+}
+
+/** 사용자 시간대의 그 날짜 0시가 실제로 언제인지 (UTC 시각) — 예: 서울 1/1 0시 = UTC 12/31 15시 */
+export function startOfLocalDay(timeZone: string | null | undefined, year: number, month: number, day: number): Date {
+  const zone = isValidTimeZone(timeZone) ? timeZone : DEFAULT_TIMEZONE;
+  const guess = Date.UTC(year, month - 1, day);
+  const first = guess - timeZoneOffsetMs(zone, new Date(guess));
+  // 서머타임 경계 근처면 오프셋이 달라질 수 있어 한 번 더 보정
+  return new Date(guess - timeZoneOffsetMs(zone, new Date(first)));
+}
+
+/** 사용자 시간대 기준 그 해의 범위 — createdAt 같은 실제 시각 컬럼 필터용 */
+export function localYearRange(timeZone: string | null | undefined, year: number): { gte: Date; lt: Date } {
+  return { gte: startOfLocalDay(timeZone, year, 1, 1), lt: startOfLocalDay(timeZone, year + 1, 1, 1) };
+}

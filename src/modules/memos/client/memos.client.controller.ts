@@ -47,7 +47,7 @@ export class MemosClientController {
   @ApiOperation({ summary: '메모 목록 조회' })
   @ApiResponse({ status: 200, description: '조회 성공', type: MemoListResponseDto })
   async getMemos(@Request() req: AuthenticatedRequest, @Query() queryDto: QueryMemoDto) {
-    return this.memosService.getMemos(req.user.id, queryDto);
+    return this.memosService.getMemos(req.user.id, queryDto, req.user.timezone);
   }
 
   // ':id'보다 먼저 선언해야 'rating-summary'가 id로 매칭되지 않음
@@ -55,7 +55,7 @@ export class MemosClientController {
   @ApiOperation({ summary: '별점별 메모 요약 (홈 화면)' })
   @ApiResponse({ status: 200, description: '조회 성공', type: RatingSummaryResponseDto })
   async getRatingSummary(@Request() req: AuthenticatedRequest, @Query() queryDto: QueryRatingSummaryDto) {
-    return this.memosService.getRatingSummary(req.user.id, queryDto);
+    return this.memosService.getRatingSummary(req.user.id, queryDto, req.user.timezone);
   }
 
   @Get(':id')

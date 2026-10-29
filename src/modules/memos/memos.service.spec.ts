@@ -57,14 +57,15 @@ describe('MemosService.getRatingSummary', () => {
     expect(calls[0]).toEqual(expect.objectContaining({ take: 3, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }] }));
   });
 
-  it('카테고리·연도 필터를 개수와 목록 모두에 적용한다', async () => {
+  it('카테고리·연도 필터를 개수와 목록 모두에 적용한다 (연도는 사용자 시간대 기준)', async () => {
     const { service, prisma } = setup();
-    await service.getRatingSummary('user-1', { categoryId: 'cat-1', year: 2026 });
+    await service.getRatingSummary('user-1', { categoryId: 'cat-1', year: 2026 }, 'Asia/Seoul');
 
     const expected = {
       userId: 'user-1',
       categoryId: 'cat-1',
-      createdAt: { gte: new Date('2026-01-01T00:00:00.000Z'), lt: new Date('2027-01-01T00:00:00.000Z') },
+      // 한국 2026-01-01 0시 ~ 2027-01-01 0시
+      createdAt: { gte: new Date('2025-12-31T15:00:00.000Z'), lt: new Date('2026-12-31T15:00:00.000Z') },
     };
     expect(prisma.memo.groupBy.mock.calls[0][0].where).toEqual(expected);
     expect(prisma.memo.findMany.mock.calls[0][0].where).toEqual(expect.objectContaining(expected));
