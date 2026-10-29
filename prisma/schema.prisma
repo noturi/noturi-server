@@ -261,6 +261,8 @@ model UserSettings {
   theme        Theme    @default(light)
   language     Language @default(ko)
   notification Boolean  @default(true)
+  /// 홈 카테고리 탭에서 "전체"의 위치 (0 = 맨 앞) — "전체"는 실제 카테고리가 아니라 여기에 따로 저장
+  allCategoryOrder Int  @default(0)
 
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId String @unique

@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsEnum, IsBoolean, IsOptional } from 'class-validator';
+import { IsEnum, IsBoolean, IsInt, IsOptional, Max, Min } from 'class-validator';
 
 export enum ThemeEnum {
   light = 'light',
@@ -41,6 +41,13 @@ export class UpdateUserSettingsDto {
   @IsOptional()
   @IsBoolean()
   notification?: boolean;
+
+  @ApiPropertyOptional({ description: '홈 카테고리 탭에서 "전체"의 위치 (0 = 맨 앞)', example: 0 })
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(1000)
+  allCategoryOrder?: number;
 }
 
 export class UserSettingsResponseDto {
@@ -63,4 +70,7 @@ export class UserSettingsResponseDto {
     example: true,
   })
   notification: boolean;
+
+  @ApiProperty({ description: '홈 카테고리 탭에서 "전체"의 위치 (0 = 맨 앞)', example: 0 })
+  allCategoryOrder: number;
 }

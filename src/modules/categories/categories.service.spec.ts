@@ -47,3 +47,35 @@ describe('CategoriesService.remove', () => {
     expect(prisma.$transaction).not.toHaveBeenCalled();
   });
 });
+
+describe('CategoriesService.reorder', () => {
+  function setupReorder() {
+    const prisma = {
+      category: {
+        updateMany: jest.fn(({ where }) => ({ op: `order:${where.id}` })),
+        findMany: jest.fn().mockResolvedValue([]),
+      },
+      userSettings: { upsert: jest.fn().mockReturnValue({ op: 'allOrder' }) },
+      $transaction: jest.fn().mockResolvedValue([]),
+    };
+    return { service: new CategoriesService(prisma as any), prisma };
+  }
+
+  it('"전체" 위치를 보내면 카테고리 순서와 같은 트랜잭션에서 사용자 설정에 저장한다', async () => {
+    const { service, prisma } = setupReorder();
+    await service.reorder(USER_ID, { categories: [{ id: 'c1', sortOrder: 0 }], allCategoryOrder: 2 });
+
+    expect(prisma.userSettings.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { userId: USER_ID }, update: { allCategoryOrder: 2 } }),
+    );
+    expect(prisma.$transaction).toHaveBeenCalledWith([{ op: 'order:c1' }, { op: 'allOrder' }]);
+  });
+
+  it('구버전 앱처럼 "전체" 위치를 보내지 않으면 사용자 설정은 건드리지 않는다', async () => {
+    const { service, prisma } = setupReorder();
+    await service.reorder(USER_ID, { categories: [{ id: 'c1', sortOrder: 0 }] });
+
+    expect(prisma.userSettings.upsert).not.toHaveBeenCalled();
+    expect(prisma.$transaction).toHaveBeenCalledWith([{ op: 'order:c1' }]);
+  });
+});

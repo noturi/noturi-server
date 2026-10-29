@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { UpdateUserDto, UpdateUserSettingsDto } from './client/dto';
-import { Theme, Language } from '@prisma/client';
+import { Theme, Language, UserSettings } from '@prisma/client';
 import { ERROR_MESSAGES } from '../../common/constants/error-messages';
 
 @Injectable()
@@ -138,15 +138,11 @@ export class UsersService {
       },
     });
 
-    return {
-      theme: settings.theme,
-      language: settings.language,
-      notification: settings.notification,
-    };
+    return toSettingsResponse(settings);
   }
 
   async updateUserSettings(userId: string, updateDto: UpdateUserSettingsDto) {
-    const { theme, language, notification } = updateDto;
+    const { theme, language, notification, allCategoryOrder } = updateDto;
 
     // upsert로 없으면 생성, 있으면 업데이트
     const settings = await this.prisma.userSettings.upsert({
@@ -156,18 +152,25 @@ export class UsersService {
         theme: theme ?? Theme.light,
         language: language ?? Language.ko,
         notification: notification ?? false,
+        allCategoryOrder: allCategoryOrder ?? 0,
       },
       update: {
         ...(theme !== undefined && { theme }),
         ...(language !== undefined && { language }),
         ...(notification !== undefined && { notification }),
+        ...(allCategoryOrder !== undefined && { allCategoryOrder }),
       },
     });
 
-    return {
-      theme: settings.theme,
-      language: settings.language,
-      notification: settings.notification,
-    };
+    return toSettingsResponse(settings);
   }
+}
+
+function toSettingsResponse(settings: UserSettings) {
+  return {
+    theme: settings.theme,
+    language: settings.language,
+    notification: settings.notification,
+    allCategoryOrder: settings.allCategoryOrder,
+  };
 }

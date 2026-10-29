@@ -1,5 +1,6 @@
 // src/categories/categories.service.ts
 import { HttpException, HttpStatus, Injectable, NotFoundException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { AppErrorCode } from '../../common/errors/app-error-codes';
 import { PrismaErrorHandler } from '../../common/exceptions/prisma-error.handler';
@@ -116,12 +117,23 @@ export class CategoriesService {
 
 
   async reorder(userId: string, reorderDto: ReorderCategoriesDto) {
-    const updates = reorderDto.categories.map(({ id, sortOrder }) =>
+    const { categories, allCategoryOrder } = reorderDto;
+    const updates: Prisma.PrismaPromise<unknown>[] = categories.map(({ id, sortOrder }) =>
       this.prisma.category.updateMany({
         where: { id, userId },
         data: { sortOrder },
       }),
     );
+    // "전체" 위치는 카테고리가 아니라 사용자 설정에 저장 — 카테고리 순서와 함께 원자적으로
+    if (allCategoryOrder !== undefined) {
+      updates.push(
+        this.prisma.userSettings.upsert({
+          where: { userId },
+          update: { allCategoryOrder },
+          create: { userId, allCategoryOrder, notification: false },
+        }),
+      );
+    }
 
     await this.prisma.$transaction(updates);
 
