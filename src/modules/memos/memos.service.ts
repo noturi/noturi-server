@@ -1,9 +1,13 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
-import { CreateMemoDto, QueryMemoDto, UpdateMemoDto } from './client/dto';
+import { CreateMemoDto, QueryMemoDto, QueryRatingSummaryDto, UpdateMemoDto } from './client/dto';
 import { CATEGORY_BRIEF_SELECT } from '../../common/constants/prisma-selects';
 import { ERROR_MESSAGES } from '../../common/constants/error-messages';
+
+/** 별점 없음 그룹 */
+const UNRATED = 0;
+const RATING_GROUPS = [5, 4, 3, 2, 1, UNRATED] as const;
 
 @Injectable()
 export class MemosService {
@@ -40,12 +44,22 @@ export class MemosService {
   }
 
   async getMemos(userId: string, queryDto: QueryMemoDto) {
-    const { keyword, categoryId, year, minRating, maxRating, hasRating, page = 1, limit: rawLimit = 20 } = queryDto;
+    const {
+      keyword,
+      categoryId,
+      year,
+      minRating,
+      maxRating,
+      hasRating,
+      sortBy = 'updatedAt',
+      sortOrder = 'desc',
+      page = 1,
+      limit: rawLimit = 20,
+    } = queryDto;
     const limit = Math.min(rawLimit, 100);
 
     const where: Prisma.MemoWhereInput = {
-      userId,
-      ...(categoryId && { categoryId }),
+      ...this.baseWhere(userId, categoryId, year),
       ...(hasRating === 'false' && { rating: null }),
       ...(hasRating === 'true' && { rating: { not: null } }),
       ...(hasRating === undefined && (minRating || maxRating) && {
@@ -60,12 +74,6 @@ export class MemosService {
           { content: { contains: keyword, mode: 'insensitive' as const } },
         ],
       }),
-      ...(year && {
-        createdAt: {
-          gte: new Date(`${year}-01-01T00:00:00.000Z`),
-          lt: new Date(`${year + 1}-01-01T00:00:00.000Z`),
-        },
-      }),
     };
 
     const [memos, total] = await Promise.all([
@@ -76,8 +84,8 @@ export class MemosService {
             select: CATEGORY_BRIEF_SELECT,
           },
         },
-        // 같은 updatedAt끼리 순서가 고정되지 않으면 페이지 경계에서 중복/누락이 생기므로 id로 보조 정렬
-        orderBy: [{ updatedAt: 'desc' }, { id: 'desc' }],
+        // 같은 시각끼리 순서가 고정되지 않으면 페이지 경계에서 중복/누락이 생기므로 id로 보조 정렬
+        orderBy: [{ [sortBy]: sortOrder }, { id: sortOrder }],
         skip: (page - 1) * limit,
         take: limit,
       }),
@@ -92,6 +100,58 @@ export class MemosService {
       limit,
       total,
       totalPages,
+    };
+  }
+
+  /**
+   * 홈 화면용 별점 요약 — 그룹(5 → 1 → 별점 없음)마다 개수와 최근 메모 limit개를 한 번에 반환
+   * 별점 N 그룹은 N.0~N.5 (0.5 단위)
+   */
+  async getRatingSummary(userId: string, queryDto: QueryRatingSummaryDto) {
+    const { categoryId, year, limit: rawLimit = 5 } = queryDto;
+    const limit = Math.min(rawLimit, 20);
+    const base = this.baseWhere(userId, categoryId, year);
+
+    const [counts, ...memosByGroup] = await Promise.all([
+      this.prisma.memo.groupBy({ by: ['rating'], where: base, _count: { _all: true } }),
+      ...RATING_GROUPS.map((rating) =>
+        this.prisma.memo.findMany({
+          where: {
+            ...base,
+            rating: rating === UNRATED ? null : { gte: rating, lt: rating + 1 },
+          },
+          include: { category: { select: CATEGORY_BRIEF_SELECT } },
+          orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+          take: limit,
+        }),
+      ),
+    ]);
+
+    const totals = new Map<number, number>();
+    for (const row of counts) {
+      const rating = row.rating === null ? UNRATED : Math.floor(Number(row.rating));
+      totals.set(rating, (totals.get(rating) ?? 0) + row._count._all);
+    }
+
+    return {
+      groups: RATING_GROUPS.map((rating, i) => ({
+        rating,
+        total: totals.get(rating) ?? 0,
+        memos: memosByGroup[i],
+      })),
+    };
+  }
+
+  private baseWhere(userId: string, categoryId?: string, year?: number): Prisma.MemoWhereInput {
+    return {
+      userId,
+      ...(categoryId && { categoryId }),
+      ...(year && {
+        createdAt: {
+          gte: new Date(`${year}-01-01T00:00:00.000Z`),
+          lt: new Date(`${year + 1}-01-01T00:00:00.000Z`),
+        },
+      }),
     };
   }
 

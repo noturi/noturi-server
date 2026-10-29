@@ -14,7 +14,15 @@ import {
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { MemosService } from '../memos.service';
-import { CreateMemoDto, UpdateMemoDto, QueryMemoDto, ResponseMemoDto, MemoListResponseDto } from './dto';
+import {
+  CreateMemoDto,
+  UpdateMemoDto,
+  QueryMemoDto,
+  QueryRatingSummaryDto,
+  ResponseMemoDto,
+  MemoListResponseDto,
+  RatingSummaryResponseDto,
+} from './dto';
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 import { AuthenticatedRequest } from '../../../common/types/auth.types';
 import { ErrorResponseDto } from '../../../common/dto/error-response.dto';
@@ -40,6 +48,14 @@ export class MemosClientController {
   @ApiResponse({ status: 200, description: '조회 성공', type: MemoListResponseDto })
   async getMemos(@Request() req: AuthenticatedRequest, @Query() queryDto: QueryMemoDto) {
     return this.memosService.getMemos(req.user.id, queryDto);
+  }
+
+  // ':id'보다 먼저 선언해야 'rating-summary'가 id로 매칭되지 않음
+  @Get('rating-summary')
+  @ApiOperation({ summary: '별점별 메모 요약 (홈 화면)' })
+  @ApiResponse({ status: 200, description: '조회 성공', type: RatingSummaryResponseDto })
+  async getRatingSummary(@Request() req: AuthenticatedRequest, @Query() queryDto: QueryRatingSummaryDto) {
+    return this.memosService.getRatingSummary(req.user.id, queryDto);
   }
 
   @Get(':id')

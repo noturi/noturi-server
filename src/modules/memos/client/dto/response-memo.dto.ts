@@ -54,3 +54,19 @@ export class MemoListResponseDto {
   @ApiProperty({ example: 8, description: '전체 페이지 수' })
   totalPages: number;
 }
+
+export class RatingGroupDto {
+  @ApiProperty({ example: 5, description: '별점 그룹 (5~1, 0 = 별점 없음). 4는 4.0~4.5를 포함' })
+  rating: number;
+
+  @ApiProperty({ example: 24, description: '그룹의 전체 메모 수' })
+  total: number;
+
+  @ApiProperty({ type: [ResponseMemoDto], description: '최근 작성한 메모 (limit개까지)' })
+  memos: ResponseMemoDto[];
+}
+
+export class RatingSummaryResponseDto {
+  @ApiProperty({ type: [RatingGroupDto], description: '별점 높은 순 그룹 (5 → 1 → 별점 없음)' })
+  groups: RatingGroupDto[];
+}
