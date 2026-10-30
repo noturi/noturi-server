@@ -16,6 +16,7 @@ import {
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { TodosService } from '../todos.service';
 import { TodosStatsService } from '../todos-stats.service';
+import { TodosSchedulerService } from '../todos-scheduler.service';
 import {
   CreateTodoDto,
   UpdateTodoDto,
@@ -44,6 +45,7 @@ export class TodosClientController {
   constructor(
     private readonly todosService: TodosService,
     private readonly todosStatsService: TodosStatsService,
+    private readonly todosSchedulerService: TodosSchedulerService,
   ) {}
 
   // ============== 투두 CRUD ==============
@@ -66,6 +68,8 @@ export class TodosClientController {
   })
   @ApiResponse({ status: 200, description: '조회 성공', type: TodoListResponseDto })
   async getTodos(@Request() req: AuthenticatedRequest, @Query() queryDto: QueryTodoDto) {
+    // 날짜별 조회(앱 할 일 탭·위젯)는 자정 직후일 수 있어 이월을 먼저 처리
+    if (queryDto.date) await this.todosSchedulerService.rolloverIfDue(req.user.id, req.user.timezone);
     return this.todosService.getTodos(req.user.id, queryDto);
   }
 

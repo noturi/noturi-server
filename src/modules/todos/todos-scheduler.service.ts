@@ -52,6 +52,24 @@ export class TodosSchedulerService {
   }
 
   /**
+   * 조회 시점에 하루 마감이 아직 안 됐으면 먼저 처리 — cron(15분 간격)을 기다리지 않고 자정 직후에도 이월된 할 일이 보이게
+   * (자정에 갱신되는 위젯이 빈 목록을 받던 문제)
+   */
+  async rolloverIfDue(userId: string, timezone: string | null | undefined, now: Date = new Date()) {
+    const today = localDateOf(timezone, now);
+    try {
+      const user = await this.prisma.user.findFirst({
+        where: { id: userId, lastRolloverDate: { lt: today } },
+        select: { id: true, totalTodos: true },
+      });
+      if (user) await this.rolloverUser(user, today);
+    } catch (error) {
+      // 조회는 막지 않음 — 다음 cron에서 다시 시도
+      this.logger.error(`조회 시 하루 마감 실패 (user: ${userId})`, error);
+    }
+  }
+
+  /**
    * 한 사용자의 하루 마감: 어제 미완료 이월 → 반복 투두 생성 → 연속 달성일 갱신
    * @returns 이번 실행에서 처리했으면 true (다른 실행이 먼저 처리했으면 false)
    */

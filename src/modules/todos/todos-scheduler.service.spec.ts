@@ -28,6 +28,7 @@ function setup({
     user: {
       groupBy: jest.fn().mockResolvedValue(zones.map((timezone) => ({ timezone }))),
       findMany: jest.fn(({ where }) => Promise.resolve(usersByZone[where.timezone] ?? [])),
+      findFirst: jest.fn().mockResolvedValue(usersByZone['Asia/Seoul']?.[0] ?? null),
       updateMany: jest.fn().mockResolvedValue({ count: claimed }),
       update: jest.fn().mockResolvedValue(undefined),
     },
@@ -169,5 +170,37 @@ describe('TodosSchedulerService.runDailyRollover', () => {
 
     expect(todosService.generateInstances).toHaveBeenCalledTimes(3);
     expect(todosService.generateInstances).toHaveBeenLastCalledWith('t3', 'user-1', 7);
+  });
+});
+
+describe('TodosSchedulerService.rolloverIfDue', () => {
+  // 회귀: cron이 15분 간격이라 자정 직후 위젯·앱이 이월 전의 빈 목록을 받던 문제
+  it('[회귀] 오늘 마감이 안 된 사용자는 조회 시점에 바로 이월한다', async () => {
+    const { service, prisma } = setup({ todos: [uncompleted()] });
+    await service.rolloverIfDue('user-1', 'Asia/Seoul', KST_JUST_AFTER_MIDNIGHT);
+
+    expect(prisma.user.findFirst.mock.calls[0][0].where).toEqual({
+      id: 'user-1',
+      lastRolloverDate: { lt: date(2026, 10, 29) },
+    });
+    expect(prisma.todoInstance.createMany.mock.calls[0][0].data[0]).toEqual(
+      expect.objectContaining({ date: date(2026, 10, 29), carryOverCount: 1 }),
+    );
+  });
+
+  it('이미 오늘 마감했으면 아무것도 하지 않는다', async () => {
+    const { service, prisma } = setup();
+    prisma.user.findFirst.mockResolvedValue(null);
+    await service.rolloverIfDue('user-1', 'Asia/Seoul', KST_JUST_AFTER_MIDNIGHT);
+
+    expect(prisma.user.updateMany).not.toHaveBeenCalled();
+    expect(prisma.todoInstance.createMany).not.toHaveBeenCalled();
+  });
+
+  it('실패해도 예외를 던지지 않는다 (조회는 계속)', async () => {
+    const { service, prisma } = setup();
+    prisma.user.findFirst.mockRejectedValue(new Error('db down'));
+
+    await expect(service.rolloverIfDue('user-1', 'Asia/Seoul', KST_JUST_AFTER_MIDNIGHT)).resolves.toBeUndefined();
   });
 });
